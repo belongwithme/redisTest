@@ -1,4 +1,5 @@
 # Redis 列表
+>八股专用 
 ## 列表
 列表是简单的字符串列表，按照插入顺序排序。
 
@@ -90,6 +91,7 @@ quicklist的节点ziplist越小，越有可能造成更多的内存碎片。
 quicklist的节点ziplist越大，分配给ziplist的连续内存空间越困难。
 极端情况下，一个quicklist只有一个ziplist，也就退化成了ziplist.
 redis提供list-max-ziplist-size参数进行配置，默认-2，表示每个ziplist节点大小不超过8KB
+
 
 
 
