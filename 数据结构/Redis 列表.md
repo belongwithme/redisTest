@@ -20,6 +20,14 @@ Redis列表有两种底层实现：
 当元素较多或较大时使用linkedlist(双端链表)。
 具体由list-max-ziplist-entries和list-max-ziplist-value两个配置决定。
 
+进阶:
+##### 演进历史
+Redis列表的底层实现经历了三个主要阶段：
+早期版本：使用双向链表(linkedlist)或压缩列表(ziplist)
+Redis 3.2：引入quicklist作为统一实现
+Redis 7.0：引入listpack替代ziplist，但整体结构仍是quicklist
+
+
 #### 为什么Redis要使用压缩列表？
 压缩列表是为了节约内存而设计的。通过连续内存存储和特殊编码，减少了内存碎片和指针开销，对于小数据集非常高效。
 
