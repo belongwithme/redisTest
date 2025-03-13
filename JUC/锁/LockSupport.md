@@ -53,7 +53,8 @@ blocker参数用于记录线程被谁阻塞的，方便问题排查
 ## LockSupport的底层实现原理是什么？
 LockSupport的底层实现是一个多层次的架构，从Java API到操作系统调用
 1. 在Java层面，LockSupport的核心方法park()和unpark()都是通过调用Unsafe类的本地方法实现的。
-2. 深入到JVM层面，每个Java线程都关联一个Parker对象，这个对象包含一个_counter计数器和用于线程等待/唤醒的同步原语。park和unpark操作实际上是在操作这个Parker对象：
+2. 深入到JVM层面，每个Java线程都关联一个Parker对象，这个对象包含一个_counter计数器和用于线程等待/唤醒的同步原语。
+park和unpark操作实际上是在操作这个Parker对象：
 - park操作会检查_counter是否大于0，如果是，将其设为0并返回；否则，将线程置于等待状态。
 - unpark操作会将目标线程的_counter设为1，如果线程正在等待，则唤醒它。
 在最底层，不同操作系统平台有不同的实现：
@@ -83,6 +84,15 @@ LockSupport的许可机制是一个简单而巧妙的设计，本质上是一个
 关键特性是许可不会累加，多次调用unpark等价于调用一次。这简化了实现，避免了计数器溢出等问题。在JVM中，这个许可通过Parker对象的_counter字段实现。
 这种机制与传统的信号量有一个重要区别：许可与特定线程关联，而不是与对象关联。这允许精确控制要唤醒的线程，避免了Object.notify()随机唤醒一个线程的问题。
 许可机制的另一个重要特性是它支持'先存后取'，即unpark可以在park之前调用，许可会被保存下来。这避免了传统同步机制中可能出现的'信号丢失'问题，大大简化了复杂并发场景的编程模型。
+
+面试版本:
+在底层，LockSupport通过Unsafe类实现：
+每个线程都有一个Parker对象
+Parker对象维护了一个许可计数器
+park/unpark实际上是在操作这个计数器
+当计数器为0时park会阻塞，当计数器为1时park会直接返回
+这就是为什么LockSupport比synchronized更轻量级 - 它只是一个简单的许可证机制，不涉及复杂的锁竞争和监视器操作。
+通过这种方式，LockSupport为Java并发工具（如ReentrantLock、CountDownLatch等）提供了基础的线程控制能力，是整个并发包的基石。
 
 ## 为什么unpark操作可以在park之前调用？
 unpark操作可以在park之前调用是LockSupport设计中的一个关键特性，这源于其许可机制的实现原理。
