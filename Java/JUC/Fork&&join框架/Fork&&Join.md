@@ -229,3 +229,115 @@ API复杂度：并行流提供更简洁的函数式API，而Fork/Join需要更�
 - 集成性：如果已在使用Stream API，则并行流提供更无缝的集成
 - 复用性：对于需要重复使用的复杂并行算法，封装为Fork/Join任务更有利于代码复用
 一般建议：简单数据转换操作使用并行流，复杂或需要优化的算法使用Fork/Join框架。
+
+## Fork/Join框架原理，如何自己实现一样的效果
+Fork/Join框架是一种基于"分治"思想的并行计算框架，其核心原理包括：
+1. 分治思想：将大任务递归拆分为小任务，直到任务足够小可以直接计算。
+2. 工作窃取算法：每个工作线程维护自己的双端队列，当线程空闲时会从其他繁忙线程的队列尾部"窃取"任务，实现负载均衡。
+3. 执行模型：工作线程采用LIFO方式处理自己的任务，窃取其他线程任务时采用FIFO方式，减少竞争。
+4. Join优化：在等待子任务结果时，工作线程不会闲置，而是去执行其他任务。
+
+设计核心组件:
+```java
+
+// 任务基类
+public abstract class MyForkJoinTask<T> {
+    protected abstract T compute();
+    public abstract MyForkJoinTask<T> fork();
+    public abstract T join();
+}
+
+// 工作线程
+public class MyWorker extends Thread {
+    private final Deque<MyForkJoinTask<?>> localTasks = new LinkedList<>();
+    private final MyForkJoinPool pool;
+    
+    // 工作线程执行逻辑
+    @Override
+    public void run() {
+        while (!isInterrupted()) {
+            MyForkJoinTask<?> task = getTask();
+            if (task != null) {
+                task.compute();
+            }
+        }
+    }
+    
+    // 获取任务：优先从自己队列头部获取，没有则尝试窃取
+    private MyForkJoinTask<?> getTask() {
+        MyForkJoinTask<?> task = localTasks.pollFirst(); // LIFO
+        if (task == null) {
+            task = stealTask(); // 尝试窃取
+        }
+        return task;
+    }
+    
+    // 窃取其他线程队列尾部任务
+    private MyForkJoinTask<?> stealTask() {
+        for (MyWorker worker : pool.getWorkers()) {
+            if (worker != this) {
+                MyForkJoinTask<?> task = worker.localTasks.pollLast(); // FIFO
+                if (task != null) return task;
+            }
+        }
+        return null;
+    }
+}
+
+// 线程池
+public class MyForkJoinPool {
+    private final List<MyWorker> workers;
+    
+    public MyForkJoinPool(int parallelism) {
+        workers = new ArrayList<>(parallelism);
+        for (int i = 0; i < parallelism; i++) {
+            MyWorker worker = new MyWorker(this);
+            workers.add(worker);
+            worker.start();
+        }
+    }
+    
+    public <T> T invoke(MyForkJoinTask<T> task) {
+        // 提交任务并等待结果
+        return task.compute();
+    }
+}
+```
+
+```java
+public class MySumTask extends MyForkJoinTask<Integer> {
+    private final int[] array;
+    private final int start;
+    private final int end;
+    private static final int THRESHOLD = 1000; // 任务拆分阈值
+    
+    public MySumTask(int[] array, int start, int end) {
+        this.array = array;
+        this.start = start;
+        this.end = end;
+    }
+    
+    @Override
+    protected Integer compute() {
+        if (end - start <= THRESHOLD) {
+            // 任务足够小，直接计算
+            int sum = 0;
+            for (int i = start; i < end; i++) {
+                sum += array[i];
+            }
+            return sum;
+        } else {
+            // 任务太大，拆分为两个子任务
+            int mid = start + (end - start) / 2;
+            MySumTask left = new MySumTask(array, start, mid);
+            MySumTask right = new MySumTask(array, mid, end);
+            
+            left.fork(); // 异步执行左侧任务
+            int rightResult = right.compute(); // 直接执行右侧任务
+            int leftResult = left.join(); // 等待左侧结果
+            
+            return leftResult + rightResult;
+        }
+    }
+}
+```

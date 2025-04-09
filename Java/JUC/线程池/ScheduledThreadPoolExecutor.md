@@ -17,6 +17,31 @@ ScheduledThreadPoolExecutor是Java并发包（java.util.concurrent）中的一�
 其次，它处理异常的方式更加优雅。周期任务难免会遇到异常情况，ScheduledThreadPoolExecutor会捕获异常并继续执行后续调度，而不是像Timer那样直接停止整个调度机制。
 另外，它提供了更灵活的调度方式。它有固定速率和固定延迟两种模式，前者适合需要精确时间间隔的场景（如每隔10分钟生成报表），后者适合处理时间不定的任务（如网络请求重试，确保两次请求间隔一定时间）。
 
+
+## ScheduledThreadPoolExecutor中一个线程异常但未捕获，这个线程会怎么样？其他线程呢？
+- 工作线程不会死亡 - 即使任务本身没有捕获异常，ScheduledThreadPoolExecutor内部也会在执行任务的外层捕获所有异常。线程池框架会在run()方法外包一层try-catch，保护工作线程不被异常终止。
+- 线程会继续工作 - 抛出异常的线程不会终止，而是会继续从任务队列获取下一个任务继续执行。
+- 只有当前任务受影响 - 未捕获的异常只会导致当前任务失败，不会影响其他任务或线程。如果是周期任务，它的后续执行会被取消。
+- 异常信息可能丢失 - 默认情况下，这些未捕获的异常不会被记录或报告，它们会被线程池"吞掉"，这是一个容易被忽视的问题。
+
+## ScheduledThreadPoolExecutor中的使用的是什么队列？内部如何实现任务排序的？
+1. 队列类型：DelayedWorkQueue是一个特殊的阻塞队列，基于优先级队列(PriorityQueue)实现。
+2. 数据结构：底层使用了二叉堆结构，这使得队列能够高效地进行任务的插入和获取操作。
+3. 排序规则：
+- 根据任务执行时间进行排序，最近需要执行的任务位于队列头部
+- 通过ScheduledFutureTask实现的Comparable接口完成排序
+- 如果任务时间相同，则按照提交顺序(sequenceNumber)排序，保证FIFO
+4. 性能特点：
+- 获取头部元素的时间复杂度为O(1)
+- 任务插入和删除的时间复杂度为O(log n)
+- 支持任务的延迟获取，只有到达执行时间才能取出任务
+- 阻塞机制：当没有到期任务时，线程会被阻塞等待，直到最近的任务需要执行或有新任务加入，避免了CPU资源浪费。
+
+个人版本:
+ScheduledThreadPoolExecutor中的队列是一个基于优先级队列的特殊阻塞队列，叫做DelayedWorkQueue。
+这个队列的特别之处在于，它把"时间"这个概念融入到了队列的核心逻辑中。想象一条时间轴，越靠近现在的任务越优先被执行 - 这正是定时调度的本质。
+DelayedWorkQueue的特别之处在于它能够"阻塞等待"，线程不必不断轮询检查是否有任务到期，而是可以安静地睡眠，直到最近的任务需要执行时才被唤醒。这减少了CPU资源的浪费.
+
 ### ScheduledThreadPoolExecutor与ThreadPoolExecutor的关系是什么？
 ScheduledThreadPoolExecutor是ThreadPoolExecutor的子类，继承了ThreadPoolExecutor的线程池管理能力，并扩展了定时调度功能。
 具体关系：
