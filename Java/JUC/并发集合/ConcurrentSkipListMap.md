@@ -21,7 +21,7 @@ ConcurrentSkipListMap是Java并发包(java.util.concurrent)中提供的一个线
 我理解ConcurrentSkipListMap本质上是一个能在高并发环境下安全使用的有序映射表，使用跳表作为底层实现。
 将ConcurrentSkipListMap比作图书馆的索引系统很贴切：
 最底层是按顺序排列的所有书籍，而上面的索引层则帮助我们快速定位到大致区域，避免从头开始线性查找。每往上一层，索引密度就降低一半，这使得查找过程能够迅速缩小范围。
-传统的有序集合如TreeMap在并发环境下需要使用显式锁，这会导致线程等待和上下文切换，而ConcurrentSkipListMap采用了无锁算法，线程不需要等待锁释放，大大减少了阻塞和上下文切换的开销。
+传统的有序集合如TreeMap在并发环境下需要使用显式锁，这会导致线程等待和上下文切换，而ConcurrentSkipListMap采用了无锁算法，线程不需要等待锁释放，减少了上下文切换的开销。
 从应用场景看，ConcurrentSkipListMap特别适合构建实时排行榜系统，既能支持高并发更新，又能高效获取前N名或某分数区间的数据。传统实现可能需要频繁排序或复杂的锁机制，而ConcurrentSkipListMap提供了更优雅的解决方案。
 另一个典型应用是基于时间的事件处理系统。使用ConcurrentSkipListMap按时间戳管理待处理事件，多个处理线程能同时添加和获取事件，整个系统无需显式同步，大大简化了设计。
 不过需要注意，ConcurrentSkipListMap的迭代器提供的是弱一致性保证，这意味着迭代过程中可能看不到最新的修改。
@@ -183,7 +183,6 @@ ConcurrentSkipListMap采用了多种无锁并发策略来保证线程安全：
 - 通过volatile变量和CAS操作建立内存屏障
 - 确保线程间的可见性和有序性
 
-个人版本:
 个人版本:
 ConcurrentSkipListMap通过跳表结构和无锁算法实现高并发性能。
 其核心机制在于利用原子CAS操作替代传统锁，保证线程安全而不阻塞线程。
