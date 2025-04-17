@@ -9,10 +9,17 @@ AQS（AbstractQueuedSynchronizer）是Java并发包中的一个核心基础组�
 
 Java并发包中的许多同步类，如`ReentrantLock、Semaphore、CountDownLatch、ReentrantReadWriteLock`等，都是基于AQS实现的。这种设计使得这些类有一致的行为模式，同时避免了重复实现类似的线程等待、唤醒和排队逻辑。
 
-面试说法:
+个人理解版:
 AQS是AbstractQueuedSynchronizer的缩写，是Java并发包中的核心基础组件。它的主要作用是提供一个框架，用于构建锁和各种同步器。
 AQS的核心思想是，通过一个int类型的状态变量和一个FIFO的等待队列，来实现线程的同步功能。它采用模板方法设计模式，将复杂的线程排队、阻塞和唤醒等底层操作封装起来，子类只需要根据自己的需求实现状态变量的维护逻辑。
 在Java并发包中，像ReentrantLock、Semaphore、CountDownLatch、ReentrantReadWriteLock等常用的同步工具类，都是基于AQS实现的。这种设计大大简化了并发工具的开发，避免了重复实现类似的线程控制逻辑。"
+
+
+面试版:
+AQS（AbstractQueuedSynchronizer）是Java并发包java.util.concurrent下的一个核心基础框架，它的主要作用就是提供一个标准模板来帮助我们构建各种锁和同步器。
+它的核心原理是围绕一个volatile的int类型的state变量和一个FIFO等待队列来工作的。state变量表示同步状态，而队列则用来管理获取状态失败的线程。
+AQS采用了模板方法模式，把线程排队、阻塞、唤醒这些通用且复杂的操作都封装起来了。我只需要继承它，重写像tryAcquire、tryRelease这样的方法，定义好state的含义和操作逻辑，就可以实现自定义的同步器。
+Java并发包中很多重要的类，像ReentrantLock、Semaphore、CountDownLatch等，都是基于AQS构建的
 
 ## AQS的核心原理是什么？
 AQS的核心原理可以概括为以下几个方面：
@@ -42,12 +49,20 @@ AQS的核心原理可以概括为以下几个方面：
 
 这种设计将同步状态的管理与线程的等待/唤醒机制分离，使得开发者可以专注于同步状态的逻辑，而不必关心线程管理的复杂性。
 
-面试说法:
+个人理解版:
 AQS的核心原理可以概括为'状态变量+等待队列'。
 - 首先，AQS使用一个volatile的int类型变量state表示同步状态，通过CAS操作保证其修改的原子性。
 - 其次，AQS维护一个FIFO的等待队列，当线程获取同步状态失败时，会被包装成Node节点加入队列，并可能被阻塞。当同步状态释放时，会唤醒队列中的后继线程。
 - AQS支持两种同步模式：独占模式和共享模式。独占模式下，同一时刻只有一个线程能获取同步状态，如ReentrantLock；共享模式下，多个线程可以同时获取同步状态，如Semaphore。
 - AQS通过模板方法模式，定义了获取和释放同步状态的框架，子类只需要实现tryAcquire、tryRelease等方法，定义自己的同步语义。线程的排队、阻塞和唤醒等复杂操作都由AQS统一处理，这大大简化了同步器的实现。"
+
+
+面试版:
+AQS的核心原理主要围绕两点：一个volatile的int类型state变量和一个FIFO等待队列.
+- state变量表示同步状态，它的具体含义由子类定义（比如锁重入次数、信号量许可数等），通过CAS保证原子更新。
+- 当线程获取state失败时，会被构造成Node节点加入FIFO等待队列，并通过LockSupport.park()阻塞。
+- 当持有state的线程释放资源时（修改state），会通过LockSupport.unpark()唤醒队列中的后继线程。
+- AQS使用了模板方法模式，封装了线程排队、阻塞/唤醒的通用逻辑，只需继承并实现tryAcquire/tryRelease等方法定义state的操作即可构建同步器。它还支持独占和共享两种模式。
 
 ## AQS中的state变量有什么作用？
 AQS中的state变量是一个volatile修饰的int类型成员变量，它是整个同步器的核心，具有以下作用：
@@ -141,6 +156,26 @@ AQS的等待队列是一个FIFO的双向链表，基于CLH锁队列的变种实�
 4. 原头节点的thread和prev引用被清空，帮助GC
 这种设计使得AQS能够高效地管理线程的等待和唤醒，同时通过双向链表结构，支持从队列中取消节点的操作。在高并发环境下，使用CAS操作保证了入队和出队操作的线程安全。"
 
+
+个人理解:
+AQS的等待队列是一个FIFO双向链表，基于CLH队列变种实现。
+- 结构: 由head和tail指针维护，每个节点（Node）包含线程引用、等待状态（waitStatus）、前后指针。
+- 入队: 当线程获取同步状态失败，会创建Node，通过CAS原子地添加到队尾。在阻塞（LockSupport.park）前，通常会确保前驱节点的waitStatus为SIGNAL，表示需要被唤醒。
+- 出队/唤醒: 当线程释放同步状态，会检查head节点状态。如果需要，会找到第一个有效后继节点，通过LockSupport.unpark唤醒它。被唤醒的线程尝试获取状态，成功后将自己设为新的head。
+- 核心机制: 依赖CAS保证线程安全，LockSupport负责阻塞/唤醒，waitStatus协调节点间的唤醒逻辑。"
+
+
+入队流程扩展:
+首先，它会调用tryAcquire(arg)方法。这个tryAcquire是需要子类去重写的，用来尝试非阻塞地获取同步状态。比如在ReentrantLock里，它会检查state是否为0，或者当前线程是否已经是持有者。"
+> 2. "如果tryAcquire成功（返回true），那么acquire方法就直接返回了，表示获取成功，非常高效。"
+> 3. "如果tryAcquire失败（返回false），说明暂时无法获取资源。这时，AQS会做两件事："
+> * "调用addWaiter(Node.EXCLUSIVE)方法，将当前线程包装成一个Node节点（标记为独占模式），并将其加入到等待队列的末尾。"
+> * "接着调用acquireQueued(node, arg)方法。这个方法会让当前节点进入一个自旋等待的过程。在循环里，它会检查自己是不是队列中的第一个等待者（即前驱是头节点），如果是，就再次尝试调用tryAcquire。如果尝试成功，就把自己设为新的头节点并返回；如果失败或者自己不是第一个等待者，就会检查是否需要阻塞（通过shouldParkAfterFailedAcquire，通常会设置前驱节点的waitStatus为SIGNAL），如果需要，就调用LockSupport.park(this)阻塞当前线程，等待被前驱节点唤醒。"
+> 4. "需要注意的是，acquireQueued在等待过程中不会响应线程中断。但它会记录中断状态。如果线程在等待时被中断过，acquire方法在最后会调用selfInterrupt()来重新设置当前线程的中断状态。"
+
+
+出队流程扩展:
+
 # 源码分析问题
 ## 请解释AQS中acquire和release方法的实现原理
 AQS中的acquire和release方法是独占模式下获取和释放同步状态的核心方法，它们采用了模板方法设计模式.
@@ -183,6 +218,9 @@ Condition接口提供了类似Object的wait/notify的线程等待/通知机制�
 2. 当线程调用await()时，会从同步队列转移到条件队列
 3. 当线程调用signal()时，会从条件队列转移到同步队列
 4. 条件队列是单向链表，而同步队列是双向链表
+
+这里补充一下:
+这个线程已经在同步队列中获取到了锁(执行了acquire并返回为true,此时它是头节点),但是后面发现条件不满足,然后无奈调用await进入条件队列.
 
 await方法的实现原理：
 ```java
@@ -238,6 +276,161 @@ signal方法的执行流程是：
 3. 被转移的线程稍后会被唤醒并重新竞争锁
 这种设计使得一个Lock可以创建多个Condition，每个Condition管理不同的等待条件，实现更精细的线程控制。
 例如，在生产者-消费者模式中，可以使用两个条件变量分别管理'缓冲区不满'和'缓冲区不空'两个条件。"
+
+
+举例来看看:
+```java
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+/**
+ * 使用 ReentrantLock 和 Condition 实现的简单的阻塞队列
+ */
+class SimpleBlockingQueue<T> {
+    private final Queue<T> queue = new LinkedList<>();
+    private final int capacity;
+    private final Lock lock = new ReentrantLock();
+    // 条件：队列不为空 (用于消费者等待)
+    private final Condition notEmpty = lock.newCondition();
+    // 条件：队列不满 (用于生产者等待)
+    private final Condition notFull = lock.newCondition();
+
+    public SimpleBlockingQueue(int capacity) {
+        this.capacity = capacity;
+    }
+
+    /**
+     * 生产者方法
+     * @param item 要放入的元素
+     * @throws InterruptedException
+     */
+    public void put(T item) throws InterruptedException {
+        lock.lock(); // 1. 获取锁
+        try {
+            // 2. 检查条件：队列是否已满?
+            while (queue.size() == capacity) {
+                System.out.println("队列已满，生产者 " + Thread.currentThread().getName() + " 开始等待...");
+                // 3. 条件不满足，调用 await() 进入 notFull 条件队列等待
+                //    await() 方法会自动释放锁，并阻塞当前线程
+                notFull.await();
+                //    当被 signal() 唤醒后，会从这里继续执行，并自动重新获取锁
+                System.out.println("生产者 " + Thread.currentThread().getName() + " 被唤醒，继续尝试放入...");
+            }
+            // 4. 条件满足（队列不满），执行操作
+            queue.offer(item);
+            System.out.println("生产者 " + Thread.currentThread().getName() + " 放入: " + item + " 当前大小: " + queue.size());
+
+            // 5. 通知可能在等待的消费者：队列现在不为空了
+            notEmpty.signal(); // 只唤醒一个等待的消费者线程
+
+        } finally {
+            lock.unlock(); // 6. 释放锁
+        }
+    }
+
+    /**
+     * 消费者方法
+     * @return 取出的元素
+     * @throws InterruptedException
+     */
+    public T take() throws InterruptedException {
+        lock.lock(); // 1. 获取锁
+        try {
+            // 2. 检查条件：队列是否为空?
+            while (queue.isEmpty()) {
+                System.out.println("队列为空，消费者 " + Thread.currentThread().getName() + " 开始等待...");
+                // 3. 条件不满足，调用 await() 进入 notEmpty 条件队列等待
+                //    await() 方法会自动释放锁，并阻塞当前线程
+                notEmpty.await();
+                //    当被 signal() 唤醒后，会从这里继续执行，并自动重新获取锁
+                System.out.println("消费者 " + Thread.currentThread().getName() + " 被唤醒，继续尝试取出...");
+            }
+            // 4. 条件满足（队列不为空），执行操作
+            T item = queue.poll();
+            System.out.println("消费者 " + Thread.currentThread().getName() + " 取出: " + item + " 当前大小: " + queue.size());
+
+            // 5. 通知可能在等待的生产者：队列现在不满了
+            notFull.signal(); // 只唤醒一个等待的生产者线程
+
+            return item;
+        } finally {
+            lock.unlock(); // 6. 释放锁
+        }
+    }
+
+    public static void main(String[] args) {
+        SimpleBlockingQueue<Integer> queue = new SimpleBlockingQueue<>(5); // 容量为 5
+
+        // 生产者线程
+        Thread producer1 = new Thread(() -> {
+            try {
+                for (int i = 0; i < 10; i++) {
+                    queue.put(i);
+                    Thread.sleep((long) (Math.random() * 100)); // 模拟生产耗时
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }, "Producer-1");
+
+        // 消费者线程
+        Thread consumer1 = new Thread(() -> {
+            try {
+                for (int i = 0; i < 5; i++) {
+                    queue.take();
+                    Thread.sleep((long) (Math.random() * 500)); // 模拟消费耗时
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }, "Consumer-1");
+         // 消费者线程2
+        Thread consumer2 = new Thread(() -> {
+            try {
+                for (int i = 0; i < 5; i++) {
+                    queue.take();
+                    Thread.sleep((long) (Math.random() * 500)); // 模拟消费耗时
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }, "Consumer-2");
+
+        producer1.start();
+        consumer1.start();
+        consumer2.start();
+    }
+}
+```
+
+代码解释：
+获取锁 (lock.lock()): 生产者 (put) 或消费者 (take) 线程首先尝试获取 ReentrantLock。如果获取成功，它就进入了临界区。
+检查条件 (while (queue.size() == capacity) 或 while (queue.isEmpty())): 在持有锁的情况下，线程检查它关心的业务条件是否满足。注意这里使用 while 循环而不是 if，这是为了防止“虚假唤醒”（spurious wakeup），即线程被唤醒了但条件仍然不满足。
+条件不满足，调用 await():
+如果队列满了（生产者）或空了（消费者），线程会调用相应 Condition 的 await() 方法。
+这时，线程会自动释放它持有的 lock。
+然后，线程进入与该 Condition 关联的条件队列中阻塞等待。
+条件满足，执行操作: 如果条件满足（队列不满或不空），线程执行相应的操作（放入元素或取出元素）。
+发出信号 (signal()): 操作完成后，线程可能会改变另一个条件的状态（比如放入元素使队列不再为空，取出元素使队列不再为满）。因此，它调用另一个 Condition 的 signal() 方法，尝试唤醒一个在该条件上等待的线程（如果有的话）。
+释放锁 (lock.unlock()): 最后，线程在 finally 块中释放锁。
+
+
+## 什么是临界区
+在并发编程中，临界区指的是一段代码，这段代码会访问或修改共享资源（比如共享变量、共享数据结构、共享文件等）。
+关键点在于：
+1. 共享资源: 临界区操作的对象是多个线程都可能访问或修改的东西。在之前的 SimpleBlockingQueue 例子中，那个 Queue<T> queue 就是一个共享资源，生产者线程和消费者线程都会访问和修改它。
+2. 并发访问问题: 如果有多个线程同时执行同一个临界区的代码，就可能会导致问题，比如：
+竞态条件 (Race Condition): 执行结果依赖于线程执行的不可预测的顺序。
+数据不一致: 共享资源可能被破坏，处于一个无效或错误的状态。
+3. 需要保护: 为了保证程序的正确性和数据的一致性，临界区必须受到保护，以确保在任何时候最多只有一个线程能够执行这段代码。
+如何保护临界区？
+我们使用同步机制 (Synchronization Mechanisms) 来保护临界区，最常见的就是锁 (Lock)，比如我们例子中用的 ReentrantLock。
+  - 线程在进入临界区之前，必须先获取锁 (lock.lock())。
+  -如果锁已经被其他线程持有，那么当前线程就会被阻塞，直到锁被释放。
+  - 线程在离开临界区之后，必须释放锁 (lock.unlock())，这样其他等待的线程才有机会获取锁并进入临界区。
 
 ## 如何实现一个基于AQS的自定义同步器？
 

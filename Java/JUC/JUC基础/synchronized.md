@@ -1,11 +1,40 @@
 # synchronized
 
+
+## 你了解synchronized吗?
+我了解 synchronized。它是 Java 中用于实现线程同步的关键字，是一种内置锁。
+它的核心作用主要有三点：保证互斥性，即同一时间只有一个线程能执行同步代码；保证可见性，确保线程对共享变量的修改能被其他线程看到；以及保证有序性，防止指令重排序。
+synchronized 可以修饰实例方法、静态方法和代码块。修饰实例方法时锁是 this 对象，修饰静态方法时锁是类的 Class 对象，修饰代码块则可以指定锁对象。
+JVM 实现 synchronized 主要依靠 monitorenter 和 monitorexit 指令（用于代码块）或方法的 ACC_SYNCHRONIZED 标志。底层依赖对象头的 Mark Word 来记录锁信息，并使用 ObjectMonitor 来管理线程。
+为了提升性能，从 JDK 6 开始，synchronized 引入了锁优化机制，包括锁升级：从无锁状态，根据竞争情况可能升级为偏向锁、轻量级锁，最后到重量级锁。还有自适应自旋、锁消除和锁粗化等优化手段。
+相比 volatile，synchronized 还能保证原子性。相比 ReentrantLock，synchronized 使用更简单，由 JVM 自动管理锁的释放，但在功能灵活性上，如可中断、超时获取、公平性等方面，ReentrantLock 更强大。
+
 ## 请解释synchronized关键字的作用
 synchronized关键字是Java提供的一种内置锁机制，用于实现线程同步.
 它具有三个核心作用：互斥访问,内存可见性保证,防止指令重排序 - 互斥性,可见性,有序性。
 - 互斥访问：确保同一时刻只有一个线程可以执行被synchronized保护的代码块或方法，防止多线程并发访问共享资源时产生冲突。
 - 内存可见性：synchronized不仅提供互斥访问，还保证线程在获取锁时会刷新工作内存中的变量值，释放锁时会将修改后的变量值刷新到主内存，从而保证可见性。
 - 防止指令重排序：synchronized代码块的执行具有原子性、可见性和有序性，编译器和处理器不会对synchronized块内的操作进行重排序。
+
+## synchronized 的底层原理
+synchronized 之所以能保证互斥性、可见性和有序性，主要是基于 JVM 的 Monitor (监视器锁) 机制和 Java 内存模型 (JMM) 的规定。
+1. 对于互斥性:
+   - 它的实现依赖于 Monitor。每个 Java 对象都可以关联一个 Monitor。当线程进入 synchronized 代码块或方法时，它需要获取对象 Monitor 的所有权。
+   - 关键在于一个 Monitor 同一时刻只能被一个线程持有。其他尝试获取该 Monitor 的线程会被阻塞，直到持有者释放。这保证了同步代码的互斥执行。JVM 通过 monitorenter、monitorexit 指令（代码块）或方法的 ACC_SYNCHRONIZED 标志（方法）来管理 Monitor 的获取和释放。
+2. 对于可见性:
+   - 这主要由 Java 内存模型 (JMM) 保证。JMM 有一条关于锁的 Happens-Before 规则：对一个锁的解锁操作 happens-before 于后续对同一个锁的加锁操作。
+   - 这意味着：线程释放锁时，JMM 会强制它将工作内存中修改的共享变量刷新到主内存；线程获取锁时，JMM 会强制它清空工作内存中共享变量的缓存，从主内存重新加载。这样就确保了线程间变量修改的可见性。
+3. 对于有序性:
+   - synchronized 同样依赖于 JMM 的 Happens-Before 规则。这条规则隐含地禁止了某些指令重排序。
+   - 具体来说，JMM 会在 synchronized 的入口 (monitorenter) 和出口 (monitorexit) 处插入内存屏障，这限制了编译器和处理器的优化行为，确保同步代码块内部的操作不会被重排序到块的外部，反之亦然，从而保证了必要的执行顺序。
+
+总结: 所以，synchronized 通过底层的 Monitor 机制实现了互斥访问，并通过 JMM 的 Happens-Before 规则以及内存屏障技术保证了可见性和有序性，这三者共同确保了并发环境下的线程安全。
+
+扩展:
+为了实现上述“锁的解锁 happens-before 后续对同一个锁的加锁”这条规则，JVM 必须采取具体的内存操作来确保可见性。
+这个具体的内存操作就是你提到的：
+- 解锁时: 强制将线程工作内存中修改过的共享变量刷新 (flush) 到主内存。这确保了操作 A（解锁前的所有写操作）的结果被写入主内存。
+- 加锁时: 强制清空 (invalidate) 线程工作内存中关于共享变量的缓存，使得后续读取必须从主内存重新加载 (load)。这确保了执行操作 B（加锁后的读操作）的线程能够看到操作 A 写入主内存的结果。
 
 
 ## synchronized修饰不同结构时，使用的锁对象是什么
@@ -45,7 +74,7 @@ synchronized在JMM中扮演着重要角色：
 
 ## 能简要描述JVM是如何实现synchronized的吗
 JVM实现synchronized的机制可以从字节码、锁升级和底层实现三个层面来描述:
-### 节码层面
+### 字节码层面
 在字节码层面，synchronized的实现依赖于两条JVM指令：
 - monitorenter：在进入同步块时使用，获取对象的monitor
 - monitorexit：在退出同步块时使用，释放对象的monitor
@@ -79,6 +108,24 @@ JVM实现synchronized的机制可以从字节码、锁升级和底层实现三�
    - _EntryList：阻塞线程集合（等待获取锁的线程）
    - _recursions：锁的重入次数
    - _count：线程获取锁的次数
+ 
+
+扩展:
+1. _EntryList (入口队列/阻塞队列):
+- 目的: 存放那些正在尝试获取 Monitor 锁，但是因为锁已被其他线程持有而被阻塞的线程。
+- 状态: 这些线程是活跃的竞争者。它们一旦有机会（即当前持有锁的线程释放了锁），就希望能立即获得锁并继续执行同步代码块。
+- 进入条件: 线程尝试进入 synchronized 代码块或方法，但在获取 Monitor 时失败（因为锁被占用），并且经过自旋等优化手段后仍未获得锁，最终进入阻塞状态。
+- 离开条件: 当前持有锁的线程释放锁时，JVM 会从 _EntryList 中唤醒一个或多个线程，让它们重新尝试竞争锁。
+2. _WaitSet (等待队列):
+- 目的: 存放那些在已经持有 Monitor 锁的情况下，调用了该对象的 wait() 方法的线程。
+- 状态: 这些线程是主动放弃了锁，并进入等待状态。它们不是在竞争锁，而是在等待某个特定的条件发生变化。它们需要其他线程调用同一个对象的 notify() 或 notifyAll() 方法来唤醒。
+- 进入条件: 线程持有锁，并执行了 object.wait()。执行 wait() 时，线程会自动释放它持有的 Monitor 锁，然后进入 _WaitSet。
+- 离开条件: 其他线程调用了该对象的 notify() 或 notifyAll() 方法。被唤醒的线程会从 _WaitSet 移动到 _EntryList 中（或者有时可以直接竞争锁，具体策略看 JVM 实现），重新开始竞争 Monitor 锁。关键是：线程从 wait() 方法返回之前，必须重新获取到它之前释放的那个 Monitor 锁。
+3. 总结一下关键区别:
+- _EntryList 中的线程是因为锁被占用而阻塞，它们在等待锁。
+- _WaitSet 中的线程是因为调用了 wait() 而等待，它们在等待被通知 (notify)，并且它们在进入 _WaitSet 时已经释放了锁。
+
+如果只有一个队列，JVM 将无法区分这两种等待状态，也就无法正确实现 wait() / notify() / notifyAll() 这一套基于条件等待的线程间通信机制。例如，无法保证调用 wait() 的线程在被 notify() 后必须重新获取锁才能继续执行。因此，这两个队列是 Monitor 机制能够同时支持互斥访问和条件等待的基础。
 
 ## 你了解JDK 6后对synchronized做了哪些优化吗?
 JDK 6之前，synchronized关键字的性能较差，竞争激烈时容易导致线程频繁阻塞和唤醒，开销较大。因此，很多开发者倾向于使用显式锁（如ReentrantLock）替代synchronized。
