@@ -226,6 +226,24 @@ try {
    });
 ```
 
+
+面试版本:
+ThreadLocal 导致内存泄漏的主要原因是它的内部实现 ThreadLocalMap 中，Entry 的 Key 是对 ThreadLocal 对象的弱引用，而 Value 是强引用。
+当 ThreadLocal 对象本身被 GC 回收后，ThreadLocalMap 中就出现了 Key 为 null 的 Entry。但只要持有这个 ThreadLocalMap 的线程还在运行（比如在线程池中），这个 Entry 以及它强引用的 Value 就无法被回收，因为从 Thread 到 ThreadLocalMap 再到 Entry 最后到 Value 的强引用链依然存在，这就导致了 Value 对象的内存泄漏。
+虽然 ThreadLocalMap 在 get/set/remove 时会尝试清理这些过期条目，但这并不及时可靠。
+避免内存泄漏的最佳实践是：在每次使用完 ThreadLocal 后，显式调用其 remove() 方法，通常放在 finally 块中确保执行。这会直接移除 Map 中的 Entry，断开强引用链，让 Value 能被正常 GC。
+
+
+## 如果主线程ThreadLocal存了一个变量，向线程池提交一个线程，这个线程能读到主线程里的ThreadLocal变量吗
+默认情况下不能
+ThreadLocal 的核心原理就是为每个线程维护一个独立的变量副本，存储在线程自己的 ThreadLocalMap 里。主线程设置 ThreadLocal 时，值是存在主线程的 Map 中；当任务提交给线程池后，是由线程池里的某个工作线程来执行，这个工作线程访问的是它自己的 ThreadLocalMap。因为主线程设置的值不在工作线程的 Map 里，所以工作线程直接 get() 是无法获取到主线程设置的值的，通常会拿到 null 或初始值。它们之间是相互隔离的。
+
+## 如果需要让线程池中的线程能够访问主线程的ThreadLocal变量怎么做
+显式传递（最直接）：
+在主线程向线程池提交任务之前，先从主线程的 ThreadLocal 中把值 get() 出来，然后通过任务的构造函数、方法参数或者 Lambda 表达式捕获等方式，将这个值作为普通参数传递给任务。任务在工作线程中执行时，就可以直接使用这个传递过来的值了。如果任务内部后续流程也需要 ThreadLocal 的形式，可以在工作线程中再把这个值 set() 到工作线程自己的 ThreadLocal 里（但别忘了任务结束时要 remove()）。
+使用 InheritableThreadLocal（有局限性）：
+Java 提供了 InheritableThreadLocal，它可以在创建新线程时，自动将父线程的值复制给子线程。但它的主要局限性在于线程池。线程池为了复用线程，工作线程通常是预先创建好的。当你提交任务时，任务是被一个已存在的、复用的工作线程执行，而不是新创建的线程。因此，InheritableThreadLocal 通常无法将在任务提交时主线程的值，传递给线程池中被复用的工作线程。所以它不适用于这个场景。
+
 ## 在线程池环境中使用ThreadLocal需要注意什么？
 主要风险：
 1. 线程复用导致的数据污染：

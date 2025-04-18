@@ -68,6 +68,18 @@ AQS提供的框架足够灵活，能够实现各种同步器，而Semaphore只�
 - 对外API：如acquire()、release()等方法
 - 内部实现：Sync及其子类FairSync/NonfairSync，负责具体的同步逻辑
 这种分层设计使代码结构清晰，也让我在实现自己的同步器时有了参考模板。
+
+
+面试版本:
+Semaphore 的内部实现主要是基于 AQS (AbstractQueuedSynchronizer) 框架的共享模式。
+1. 它内部通过 AQS 的 state 变量来表示当前可用的许可数量。
+2. 核心操作有两个：acquire (获取许可) 和 release (释放许可)。
+3. 获取许可 (acquire) 时，它会尝试通过 CAS 操作原子地减少 state 的值。
+- 如果成功（许可足够且满足公平策略），线程获取许可。
+-  如果失败（许可不足或不满足公平策略），线程会被封装成节点加入 AQS 的等待队列，并被挂起 (LockSupport.park)。
+4.  释放许可 (release) 时，它会通过 CAS 操作原子地增加 state 的值。
+5. 释放成功后，它会检查 AQS 队列中是否有等待的线程，如果有，则唤醒 (LockSupport.unpark) 队列头部的线程，让它们重新尝试获取许可。
+Semaphore 支持公平和非公平两种策略，这主要体现在获取许可时是否检查等待队列中存在更早的线程。
 ## acquire()和release()方法的底层实现逻辑？
 acquire()方法:
 1. 调用AQS的acquireSharedInterruptibly方法
