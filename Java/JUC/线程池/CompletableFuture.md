@@ -2,10 +2,10 @@
 ## 什么是CompletableFuture？它与Future的区别是什么？
 CompletableFuture是Java 8引入的一个类，用于异步编程。它实现了Future和CompletionStage接口。相比Future，CompletableFuture提供了非阻塞的获取结果、函数式编程支持、流式API（CompletionStage）、显式的任务完成控制以及更好的异常处理机制。
 Future的主要问题在于：
-get()方法是阻塞的，会一直等待任务完成。
-无法方便地定义任务完成后的回调操作，需要通过isDone()轮询。
-不支持多个Future的组合。
-没有完善的异常处理机制（需要try-catch get()）。
+- get()方法是阻塞的，会一直等待任务完成。
+- 无法方便地定义任务完成后的回调操作，需要通过isDone()轮询。
+- 不支持多个Future的组合。
+- 没有完善的异常处理机制（需要try-catch get()）。
 CompletableFuture解决了这些痛点，使得异步编程更加灵活和强大。
 
 个人理解版:
@@ -16,6 +16,65 @@ CompletableFuture则像是进入了异步编程的“工业时代”。它继承
 - Future是“拉模式” (Pull)：你需要主动去get()结果，不给就等着。
 - CompletableFuture是“推模式” (Push)：任务完成后，结果会自动“推”给后续定义好的处理阶段（回调）。
 此外，CompletableFuture还内置了组合多个任务（allOf, anyOf）、异常处理（exceptionally, handle）等高级功能，让复杂的异步协作变得简单。它不仅仅是Future的增强，更是一种声明式异步编程范式的体现，让开发者能更专注于业务逻辑的编排，而不是底层的线程同步和等待。
+
+面试版本:
+CompletableFuture 是 Java 8 引入的一个用于异步编程的类，它实现了 Future 和 CompletionStage 接口。它的出现主要是为了解决传统 Future 接口存在的一些痛点。
+Future 的主要问题在于：
+1. 它的 get() 方法是阻塞的，调用时会一直等待任务完成，容易造成线程阻塞。
+2. 它缺乏任务完成后的回调机制，我们通常需要通过 isDone() 方法轮询来判断任务是否完成，编码比较繁琐。
+3. Future 自身不支持多个任务的组合，比如等待多个任务都完成后执行某个操作，实现起来比较复杂。
+4. 异常处理也比较被动，必须在调用 get() 时通过 try-catch 来捕获。
+而 CompletableFuture 很好地解决了这些问题，它与 Future 的核心区别在于：
+1. 非阻塞性: CompletableFuture 提供了大量基于回调的方法（如 thenApply, thenAccept 等），允许我们在任务完成后自动执行后续操作，避免了 get() 的阻塞等待。这是一种“推模式”，任务完成后结果会自动推送给后续处理逻辑，而 Future 是“拉模式”，需要主动去拉取结果。
+2. 函数式编程与链式调用: 它利用 CompletionStage 接口提供了流式 API，支持函数式编程，可以像流水线一样将多个异步操作串联起来（thenApply, thenCompose），代码更简洁、更具表达力。
+3. 强大的组合能力: CompletableFuture 提供了 allOf 和 anyOf 等静态方法，可以方便地组合多个异步任务，实现等待所有任务完成或任意一个任务完成的逻辑。
+4. 更完善的异常处理: 它提供了 exceptionally 和 handle 等方法，可以在异步调用链中显式、优雅地处理可能发生的异常，而不是等到最后 get() 时才处理。
+5. 显式完成控制: CompletableFuture 还可以被外部手动完成（通过 complete 或 completeExceptionally 方法），这使得它可以更好地与基于回调的 API 进行桥接。
+
+总结来说，Future 解决了基本的‘提交任务，稍后获取结果’的问题，但交互方式比较原始和阻塞。CompletableFuture 则提供了一套现代化、功能强大的异步编程解决方案，它通过非阻塞的回调、链式调用、任务组合和灵活的异常处理，极大地简化了复杂异步流程的开发，特别适合构建高并发、响应式的应用程序。
+## CompletableFuture和FutureTask的区别是什么？
+FutureTask 和 CompletableFuture 是 Java 并发编程中处理异步计算的两种不同方式，它们的主要区别在于设计理念、功能丰富性和使用方式：
+1. 设计理念与编程模型:
+- FutureTask: 基于 阻塞模型。它实现了 Future 接口，核心思想是提交一个任务，然后在需要结果时调用 get() 方法阻塞等待。这是一种“拉”（Pull）模式，你需要主动去获取结果。
+- CompletableFuture: 基于 回调和事件驱动模型 (CompletionStage 接口)。它支持非阻塞操作，允许你定义当任务完成时（或异常时）自动执行的后续操作（回调）。这是一种“推”（Push）模式，结果或状态变化会触发后续逻辑。
+2. 功能丰富性:
+- FutureTask: 功能相对基础，主要提供了异步执行、获取结果 (get())、检查完成状态 (isDone()) 和取消任务 (cancel()) 的基本能力。
+- CompletableFuture: 功能非常丰富，提供了大量的用于组合、转换和处理结果的方法，例如：
+    - 转换: thenApply() (对结果应用函数), thenCompose() (链接另一个 CompletableFuture)
+    - 消费: thenAccept() (消费结果), thenRun() (完成时执行 Runnable)
+    - 组合: thenCombine() (合并两个结果), allOf() (等待所有完成), anyOf() (等待任意一个完成)
+    - 异常处理: exceptionally() (处理异常并返回默认值), handle() (处理结果或异常)
+3. 任务组合与链式调用:
+- FutureTask: 不支持显式的任务组合或链式调用。如果你需要一个任务依赖另一个任务的结果，需要手动在获取第一个结果后提交第二个任务。
+- CompletableFuture: 强大支持任务的链式调用和组合。你可以轻松地构建复杂的异步工作流，例如任务 A 完成后执行任务 B，任务 C 和 D 并行执行，然后合并它们的结果等。
+4. 异常处理:
+- FutureTask: 异常在调用 get() 时作为 ExecutionException 被动地抛出，需要调用者使用 try-catch 来处理。
+- CompletableFuture: 提供了主动的、更灵活的异常处理机制。可以使用 exceptionally() 或 handle() 在链式调用中直接处理可能发生的异常，而不是在最终获取结果时才处理。
+5. 异步执行:
+- FutureTask: 需要显式地提交给 ExecutorService 或创建 Thread 来获得异步执行的能力。它本身只是任务的封装。
+- CompletableFuture: 可以更容易地实现异步执行。许多静态工厂方法（如 supplyAsync, runAsync）可以接收 Executor 参数，如果不提供，默认会使用 ForkJoinPool.commonPool()。
+6. 显式完成:
+- FutureTask: 其状态由其包装的 Callable 或 Runnable 的执行结果隐式决定。
+- CompletableFuture: 除了由计算任务驱动完成外，还可以被手动完成（通过 complete() 或 completeExceptionally() 方法）。这使得它可以很好地桥接回调式的 API。
+
+总结:
+FutureTask 是 Java 5 提供的基础异步计算工具，基于阻塞获取结果。
+CompletableFuture 是 Java 8 引入的高级异步编程工具，基于回调和流式 API，提供了强大的任务组合、链式调用和异常处理能力，更适合构建复杂的非阻塞异步应用。
+在需要简单异步执行并阻塞获取结果的场景，FutureTask 足够使用。但对于需要构建复杂异步流程、处理任务依赖、进行非阻塞处理的现代 Java 应用，CompletableFuture 是更强大和灵活的选择
+
+
+面试版本:
+FutureTask 和 CompletableFuture 都是用来处理异步计算的，但它们有几个关键区别：
+1. 核心模型不同：FutureTask 是 Java 5 引入的，基于阻塞模型。你需要调用 get() 方法去主动获取结果，这会阻塞当前线程直到结果可用。而 CompletableFuture 是 Java 8 引入的，基于回调模型，它是非阻塞的。你可以定义任务完成后自动触发的后续操作，形成链式调用，这更像是一种“事件驱动”或“推”模式。
+2. 功能丰富度不同：FutureTask 功能相对基础，主要就是执行任务和获取结果。CompletableFuture 则强大得多，它提供了丰富的 API 来进行任务的组合（比如 allOf, anyOf）、转换（thenApply）、链式处理（thenCompose, thenAccept）以及更灵活的异常处理（exceptionally, handle）。
+3. 编程范式不同：FutureTask 的使用方式比较传统。CompletableFuture 支持函数式编程和流式 API，代码写起来更简洁、更具表达力，尤其适合构建复杂的异步工作流。
+
+简单来说，FutureTask 解决了基本的异步结果获取问题，但交互比较笨拙。CompletableFuture 则提供了一整套现代化的异步编程解决方案，特别擅长处理任务之间的依赖、组合和非阻塞流程控制。
+## CompletableFuture的主要作用是什么？
+1. 实现非阻塞的异步计算：它通过回调机制（如 thenApply, thenAccept 等）让你可以在任务完成时自动执行后续操作，避免了传统 Future.get() 方法的阻塞等待，提高了程序的响应性和吞吐量。
+2. 提供强大的任务编排能力：它允许你像流水线一样将多个异步任务链接起来（链式调用），或者组合多个并行任务的结果（allOf, anyOf），从而能够清晰、简洁地构建复杂的异步工作流。
+3. 改进异常处理：它提供了更灵活、更主动的异常处理方式（如 exceptionally, handle），允许你在异步流程中方便地捕获和处理错误，而不是只能在最后 get() 的时候处理。
+
 ## CompletableFuture的核心原理是什么？底层是如何实现异步和回调的？
 CompletableFuture的核心原理基于事件驱动和回调机制。
 - 内部状态管理：它内部维护了任务的状态（未完成、正常完成、异常完成）以及最终的结果或异常。状态的转换通常使用CAS（Compare-And-Swap）操作来保证线程安全。
@@ -125,7 +184,7 @@ CompletableFuture的线程调度取决于调用的方法类型：
 - thenRun (触发): "等前面搞完，我就跑一下，不关心前面是啥"。就像流水线某个阶段完成的信号灯亮了，触发另一个独立的机器开始运转。例如：“文件保存成功后，执行清理任务”。无输入->动作(无输出)。
 - thenCompose (编排/flatMap): "拿到结果T，用它启动下一个异步任务，并把那个任务的结果作为我的结果"。这是处理依赖性异步调用的关键！避免Future地狱 (CompletableFuture<CompletableFuture<T>>)。如果thenApply的转换逻辑本身就是返回一个CompletableFuture，那你就该用thenCompose来“解包”。例如：“拿到订单ID (T)，异步调用库存服务检查库存 (返回CompletableFuture<Boolean>)”。输入->启动异步任务->输出异步任务的结果。
 - thenCombine (合并): "等我和另一个独立的家伙都搞完了，把我俩的结果合一起"。用于汇聚两条独立的并行流水线。例如：“异步查询用户基本信息 (Future A) 并且 异步查询用户权限 (Future B)，两者都完成后，合并成用户 DTO”。(结果A, 结果B) -> 合并结果C。
-选择哪个方法，就看你下一步操作：
+选择哪个方法，就看你下一步操作：   
 - 需要上一步结果，且下一步是同步计算/转换？ -> thenApply
 - 需要上一步结果，但下一步只是消费它，无后续返回值？ -> thenAccept
 - 不需要上一步结果，下一步只是个动作？ -> thenRun
@@ -218,7 +277,8 @@ CompletableFuture提供了多种机制来处理异步执行过程中可能出现
 想在任何情况下都执行一个副作用（如日志），但不改变传递下去的结果/异常？ -> whenComplete
 # 三、实战与场景
 ## 请描述一个你实际用CompletableFuture解决过的业务场景，为什么选择它？
-## CompletableFuture在高并发场景下的优势和局限？与传统线程池、ForkJoinPool的对比？
+
+## CompletableFuture在高并发场景下的优势和局限？与传统线程池、ForkJoinPool的对比？ 
 优势：
 - 非阻塞性：通过回调机制避免了线程因等待结果而阻塞，提高了线程利用率和系统吞吐量，特别适合IO密集型任务。
 - 强大的编排能力：支持链式调用、组合（allOf, anyOf）、异常处理等，能简洁地描述复杂的异步工作流。
@@ -423,3 +483,183 @@ CompletableFuture在Java并发体系中定位于高层次的异步编程和任�
 - 对比 CyclicBarrier：CyclicBarrier 是让一堆线程 “步调一致”，大家跑到某个点停一下，等所有人都到了再一起往下跑。它同步的是线程本身。CompletableFuture 则不关心线程怎么同步，它关心的是任务之间的逻辑依赖和数据流转。虽然 allOf 也能让任务都完成后再做某事，但这和 CyclicBarrier 的线程级同步点机制完全是两码事。
 
 所以，CompletableFuture 的定位就是高层异步编排大师，它把底层的线程管理、结果传递、异常处理、任务组合这些脏活累活都封装好了，让你用一种更流畅、更声明式、更少阻塞的方式去写并发代码，尤其适合现在流行的微服务调用、IO密集型应用等场景。它代表了Java并发编程向更高抽象层次、更偏向响应式演进的一个重要方向。
+
+
+
+# 实战八股(收集面经)
+## CompletableFuture底层用的什么线程池
+CompletableFuture 的异步方法（如 runAsync、supplyAsync 以及带有 Async 后缀的回调方法）在默认情况下会使用 ForkJoinPool.commonPool() 这个公共线程池来执行任务。
+但是，这些异步方法都提供了重载版本，允许开发者传入一个自定义的 Executor 实例。这意味着我们可以根据业务需求，指定使用自定义的线程池（例如 ThreadPoolExecutor）来执行异步任务，从而实现更精细化的线程管理和资源隔离。
+
+## 如何使用CompletableFuture实现调用一个接口，过一段时间没完成就超时返回，中断执行任务的线程这个功能？
+如何使用CompletableFuture实现调用一个接口，过一段时间没完成就超时返回，中断执行任务的线程这个功能？
+1. 实现超时:
+   - Java 9+: 可以使用 orTimeout(long timeout, TimeUnit unit) 方法。它会在指定时间后如果 Future 仍未完成，则使其异常完成，抛出 TimeoutException。
+   - Java 9+: 也可以用 completeOnTimeout(T value, long timeout, TimeUnit unit)。它会在超时后使 Future 正常完成，并赋予一个指定的默认值。
+   - Java 8: 需要手动实现。可以结合 ScheduledExecutorService 创建一个延迟任务，在超时后调用 future.completeExceptionally(new TimeoutException()) 或 future.complete(defaultValue)。同时，需要确保 ScheduledFuture 本身在主 Future 完成时被取消，避免资源浪费。
+2. 中断执行任务的线程:
+   - 在获得 CompletableFuture 后，可以调用 cancel(true) 方法。这会尝试取消任务。
+   - 重要: cancel(true) 仅仅是尝试设置目标线程的中断状态位 (Thread.interrupt())。它不能保证正在执行的任务逻辑会立即停止。任务代码必须自己编写逻辑来响应中断（例如，检查 Thread.currentThread().isInterrupted() 或处理 InterruptedException）才能真正停止。如果任务代码不响应中断，即使调用了 cancel(true)，它也可能继续执行直到自然结束。
+   - 因此，cancel(true) 主要作用是改变 Future 的状态为 CANCELLED，阻止后续回调执行，并抛出 CancellationException，而不是强制终止线程。
+```java
+        ExecutorService executor = Executors.newFixedThreadPool(1); // 自定义线程池
+
+        CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
+            try {
+                // 模拟调用接口
+                System.out.println("任务开始执行...");
+                // 模拟耗时且可能不响应中断的操作
+                Thread.sleep(5000);
+                // 检查中断状态（如果可以的话）
+                if (Thread.currentThread().isInterrupted()) {
+                     System.out.println("任务被中断");
+                     return "Interrupted";
+                }
+                System.out.println("任务正常完成");
+                return "Success";
+            } catch (InterruptedException e) {
+                System.out.println("任务因中断异常退出");
+                Thread.currentThread().interrupt(); // 重新设置中断状态
+                return "Interrupted Exception";
+            }
+        }, executor);
+
+        try {
+            String result = future
+                .orTimeout(2, TimeUnit.SECONDS) // 设置2秒超时
+                .exceptionally(ex -> { // 处理可能的超时异常或其他异常
+                    if (ex.getCause() instanceof TimeoutException) {
+                        System.out.println("任务超时！");
+                        // 尝试中断线程 (效果取决于任务代码)
+                        boolean cancelled = future.cancel(true);
+                        System.out.println("尝试取消任务: " + cancelled);
+                        return "Timeout";
+                    } else {
+                         System.out.println("任务发生其他异常: " + ex.getMessage());
+                        return "Error";
+                    }
+                })
+                .join(); // join() 等待最终结果 (正常、超时或错误)
+
+            System.out.println("最终结果: " + result);
+        } finally {
+            executor.shutdown();
+        }
+```
+
+
+
+## CompletableFuture底层的orTimeout() 和 completeOnTimeout()有什么区别？
+- orTimeout(timeout, unit): 在超时后，将 CompletableFuture 异常完成 (complete exceptionally)。
+后续通过 get() 或 join() 获取结果时会抛出 TimeoutException（通常被包装在 CompletionException 或 ExecutionException 中）。如果你希望将超时视为一种错误状态，就用这个。
+- completeOnTimeout(defaultValue, timeout, unit): 在超时后，将 CompletableFuture 正常完成 (complete normally)，并将结果设置为你提供的 defaultValue。
+后续获取结果时会得到这个默认值。如果你希望在超时后流程能继续下去，并使用一个预设的默认值，就用这个。
+
+## CompletableFuture 里的 all of 方法可以怎么实现.
+1. CompletableFuture.allOf(cf1, cf2, ...) 用于等待所有给定的 CompletableFuture 都执行完成。
+2. 它返回一个 CompletableFuture<Void>。这个返回的 Future 不包含任何原始 Future 的结果。它仅仅是一个信号，表示所有任务都结束了（无论是正常完成还是异常完成）。
+3. 关键实现步骤：
+要在所有任务完成后聚合它们的结果，你需要在 allOf 返回的 CompletableFuture<Void> 上调用 thenApply (或 thenRun, thenAccept)，然后在 lambda 表达式中，通过调用原始 Future 列表（cf1, cf2 等）的 join() 方法来安全地获取它们各自的结果。
+因为此时可以保证所有 Future 都已完成，所以 join() 不会阻塞。
+
+```java
+        CompletableFuture<String> future1 = CompletableFuture.supplyAsync(() -> "Result 1");
+        CompletableFuture<Integer> future2 = CompletableFuture.supplyAsync(() -> 100);
+        CompletableFuture<Boolean> future3 = CompletableFuture.supplyAsync(() -> true);
+
+        CompletableFuture<Void> allFutures = CompletableFuture.allOf(future1, future2, future3);
+
+        // 实现结果聚合
+        CompletableFuture<List<Object>> allResultsFuture = allFutures.thenApply(v ->
+             Stream.of(future1, future2, future3)
+                   .map(CompletableFuture::join) // 在这里join是安全的
+                   .collect(Collectors.toList())
+        );
+
+        List<Object> results = allResultsFuture.join(); // 获取聚合后的结果列表
+        System.out.println(results); // 输出: [Result 1, 100, true]
+
+```
+注意异常：如果 allOf 中的任何一个 Future 异常完成，那么 allOf 返回的 Future 也会异常完成（携带第一个发生的异常）。在聚合结果时需要考虑异常处理，或者在 allOf 上使用 exceptionally 或 handle。
+
+## completablefuture解决并行场景的优化，什么时候必须使用completablefuture​,如果自己设计的话有什么思路？还有没有其他的思路去解决并行访问的优化？如果不从并发工具的角度有什么思路？不去从后端的角度去思考怎么解决？
+1. 并行优化: CF 通过非阻塞回调和任务编排（allOf, anyOf, thenCombine 等）优化并行场景。它允许你清晰地定义并行任务，并在它们完成后以非阻塞方式组合结果或触发后续逻辑，尤其擅长 IO 密集型任务的并行，能显著提高线程利用率和吞吐量。
+2. 何时必须使用: 没有绝对的“必须”。但在以下场景，CF 是强烈推荐或事实上的最佳实践：
+    - 需要编排复杂的异步任务流，任务间存在依赖、组合关系。
+    - 追求非阻塞 I/O，构建高并发、响应式系统。
+    - 需要优雅地处理异步任务的异常和超时。
+    - 相比手动管理 Future 列表、CountDownLatch 等，CF 提供了更简洁、更声明式的代码。
+3. 自己设计思路: 如果不使用 CF，可以考虑：
+    - Reactive Streams (响应式流): 如 Project Reactor (Mono/Flux) 或 RxJava (Observable/Single)。它们提供了更强大的异步序列处理和背压能力，CF 可以看作是其简化版或组成部分。
+    - Actor Model: 如 Akka。通过消息传递和隔离状态来处理并发，适合大规模分布式系统。
+    - 基础回调: 设计基于接口的回调机制，手动管理状态和线程。但这通常更复杂，易出错。
+4. 其他并行优化思路 (并发工具):
+    - 传统 ExecutorService.invokeAll(): 提交一组 Callable，阻塞等待所有任务完成并返回 Future 列表。简单直接，但阻塞。
+    - Parallel Streams: list.parallelStream().map(...).collect(...)。适用于 CPU 密集型的内存数据并行处理，共享 ForkJoinPool.commonPool()，需注意阻塞操作。
+    - CountDownLatch: 用于简单的“等待 N 个事件完成”的同步。
+5. 非并发工具角度优化:
+    - Caching: 缓存频繁访问且不常变动的数据，减少并行调用的需要。
+    - 请求合并/批处理: 将多个对同一服务的请求合并成一个批量请求。
+    - 优化下游服务: 如果并行调用的下游服务慢，优化下游是根本。
+    - 异步网关/BFF (Backend for Frontend): 在网关层或 BFF 层进行请求聚合和扇出。
+    - 数据预取/冗余: 在数据写入时，可能就将未来读取时需要关联的数据冗余存储，避免读取时多次并行查询。
+    - 算法优化: 重新审视业务逻辑，看是否能通过不同的算法减少并行依赖。
+6. 非后端角度优化 (这个角度比较模糊，尝试理解):
+    - 前端并行请求: 如果是 Web 应用，让浏览器/客户端并发请求多个 API 端点，然后在前端聚合。
+    - CDN/边缘计算: 将部分计算或数据聚合逻辑推到离用户更近的 CDN 边缘节点。
+    - 客户端能力: 利用现代客户端的处理能力进行一些并行计算或数据处理。
+    - 交互设计: 调整 UI/UX，允许部分数据异步加载或分步展示，降低对后端并行聚合的硬性要求。
+
+## 有没有用过 completablefuture，能做什么，和不用有什么区别
+
+1. 用过: (肯定回答用过，并结合项目经验) 是的，在多个项目中广泛使用过 CompletableFuture。
+2. 能做什么:
+    - 执行异步任务（有返回值 supplyAsync，无返回值 runAsync）。
+    - 非阻塞地处理任务结果（thenApply, thenAccept, thenRun）。
+    - 链式编排任务（thenCompose 用于依赖性异步任务）。
+    - 组合并行任务（thenCombine 合并两个，allOf 等待所有，anyOf 等待任意一个）。
+    - 优雅地处理异常（exceptionally, handle）。
+    - 设置超时 (orTimeout, completeOnTimeout)。
+3. 和不用的区别:
+    - 不用 CF (用 Future): 主要依赖 Future.get() 阻塞获取结果，或者 isDone() 轮询。任务组合、链式处理、异常处理逻辑复杂，代码冗长且容易出错，难以实现真正的非阻塞流程。
+    - 用 CF: 代码更简洁、更具表现力，易于构建复杂的非阻塞异步工作流。提高了系统吞吐量和响应性，尤其适合 IO 密集型应用。提供了更完善的错误处理和组合能力。思维模式从“拉取结果”转变为“响应完成事件”。
+
+## 如果我去查询数据库，然后编排后面的任务，这些任务必须要等前面的做完才可以执行么，还是可以同时.
+这取决于后面的任务是否依赖数据库查询的结果：
+- 必须等待 (依赖关系): 如果后续任务需要使用从数据库查询到的数据作为输入，那么它们必须等待数据库查询这个 CompletableFuture 完成。这时应该使用 thenApply (同步处理结果)、thenAccept (同步消费结果) 或 thenCompose (用结果启动下一个异步任务)。
+```java
+        CompletableFuture<QueryResult> dbFuture = CompletableFuture.supplyAsync(() -> queryDatabase());
+        // 任务A 依赖数据库结果
+        CompletableFuture<ProcessedResult> taskA = dbFuture.thenApply(queryResult -> processData(queryResult));
+```
+- 可以同时 (无依赖关系): 如果后续任务与数据库查询是相互独立的，它们完全可以并行执行。你可以同时启动数据库查询和其他任务的 CompletableFuture，如果最后需要合并它们的结果，可以使用 thenCombine 或 allOf。
+```java
+        CompletableFuture<QueryResult> dbFuture = CompletableFuture.supplyAsync(() -> queryDatabase());
+        CompletableFuture<ExternalData> externalFuture = CompletableFuture.supplyAsync(() -> callExternalApi());
+
+        // 如果需要合并结果
+        CompletableFuture<CombinedResult> combined = dbFuture.thenCombine(externalFuture,
+                (dbResult, externalData) -> combineResults(dbResult, externalData));
+
+        // 或者只是等待它们都完成
+        CompletableFuture.allOf(dbFuture, externalFuture).thenRun(() -> System.out.println("数据库和外部API都完成了"));
+```
+
+## completablefuture异常处理和普通的try catch有什么区别
+1. 普通 try-catch:
+- 主要用于同步代码块，或者包裹阻塞的 future.get() 调用。
+- 异常捕获和处理逻辑与主流程代码交织在一起。
+- 如果用在 get() 上，是在整个异步链条的末端处理异常，且会阻塞等待。
+2. CompletableFuture 异常处理 (exceptionally, handle):
+- 声明式: 在构建异步链时，将异常处理逻辑声明性地附加到链条的特定阶段。
+- 非阻塞: 异常处理本身是回调驱动的，不会阻塞链条的执行（除非处理逻辑本身阻塞）。
+- 链内恢复/转换: exceptionally 可以在异常发生时提供一个替代结果，让链条能恢复并继续正常执行下去。handle 则无论成功失败都会执行，可以根据结果或异常转换成一个统一的输出状态。
+- 更早介入: 可以在异步链的中间环节处理异常，而不是等到最后。
+
+核心区别: CF 的异常处理是其非阻塞、链式、声明式异步模型的一部分，允许在不中断异步流的情况下处理和恢复错误。而传统 try-catch 通常用于同步代码或阻塞等待异步结果后的异常处理。
+
+## 线程池+CompletableFuture用过吗
+- 用过: 是的，这是 CompletableFuture 的标准且推荐的使用方式。
+- 为什么一起用: CompletableFuture 负责任务的编排和回调链的管理（即定义“做什么”和“按什么顺序做”），而线程池（ExecutorService）则负责提供实际执行任务的资源（即“谁来做”）。
+- 如何用: 在调用 supplyAsync, runAsync 或任何带 Async 后缀的回调方法时，传入一个自定义的 Executor 实例（通常是配置好的 ThreadPoolExecutor）。
+- 重要性: 这样做可以避免过度依赖和可能耗尽全局的 ForkJoinPool.commonPool()，实现任务隔离（如 IO 密集型任务使用单独的线程池），精细化控制并发资源，是生产环境中保证稳定性和性能的关键实践。
