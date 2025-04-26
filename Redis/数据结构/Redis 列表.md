@@ -4,7 +4,8 @@
 列表是简单的字符串列表，按照插入顺序排序。
 
 ### 底层编码
-- ziplist：当列表的元素个数小于`list-max-ziplist-entries`配置（默认512）并且列表中每个元素的值都小于`list-max-ziplist-value`配置（默认64字节）时，列表使用ziplist编码。
+- ziplist：当列表的元素个数小于`list-max-ziplist-entries`配置（默认512）
+  且列表中每个元素的值都小于`list-max-ziplist-value`配置（默认64字节）时，列表使用ziplist编码。
 - linkedlist：当列表的元素不满足ziplist条件时，列表使用linkedlist编码。
 
 #### ziplist编码

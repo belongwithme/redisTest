@@ -127,6 +127,16 @@ public class WithFutureTaskExample {
     }
 }
 ```
+
+面试版本:
+FutureTask 是 Java 并发包 java.util.concurrent 中的一个核心类，它在 JDK 1.5 时被引入，主要是为了解决异步计算结果获取的问题。
+
+可以把它理解为一个封装了异步任务及其未来结果的容器。它的主要作用有以下几点：
+1. 执行异步计算：当我们需要执行一个耗时的操作（比如复杂的计算或者远程调用）但又不希望阻塞当前主线程时，可以将这个操作封装成一个 Callable 或 Runnable 对象，然后用 FutureTask 包装起来。
+2. 获取计算结果：将 FutureTask 提交给线程或者线程池执行后，主线程可以继续做其他事情。当主线程需要计算结果时，可以调用 FutureTask 的 get() 方法。如果此时任务已经完成，get() 会立刻返回结果；如果任务还在执行中，get() 方法会阻塞当前线程，直到任务完成并返回结果。这实现了任务执行与结果获取的解耦。
+3. 管理任务生命周期：FutureTask 实现了 Future 接口，因此提供了一系列管理异步任务生命周期的方法，比如 isDone() 判断任务是否完成，isCancelled() 判断任务是否被取消，以及 cancel() 方法尝试取消任务的执行。
+
+从实现角度看，FutureTask 设计得很巧妙，它实现了 RunnableFuture 接口，该接口同时继承了 Runnable 和 Future 接口。这使得 FutureTask 既可以被线程或线程池直接执行（因为它有 run() 方法），又具备了 Future 接口管理任务和获取结果的能力。
 ## FutureTask实现了哪些接口？每个接口的作用是什么？
 FutureTask实现了以下接口：
 - RunnableFuture<V>接口：这是一个组合接口，继承了Runnable和Future<V>接口
@@ -178,12 +188,54 @@ Future接口提供了以下主要方法：
 
 
 # 内部实现
+
+## FutureTask的实现原理是什么
+FutureTask 的实现原理巧妙地结合了状态管理、原子操作和等待/通知机制，使其能够高效且线程安全地管理异步任务。其核心原理可以概括为以下几点：
+1. 状态机 (State Machine)：
+- FutureTask 内部维护一个 volatile int state 变量来表示任务的生命周期状态（如 NEW, COMPLETING, NORMAL, EXCEPTIONAL, CANCELLED, INTERRUPTING, INTERRUPTED）。
+- volatile 关键字保证了状态在多线程间的可见性。
+- 状态之间的转换是单向的，并且通过 CAS (Compare-And-Swap) 原子操作来保证线程安全，防止并发修改导致状态不一致。例如，只有当状态是 NEW 时，才能成功将其转换为 COMPLETING 来设置结果。
+2. 执行逻辑 (run() 方法)：
+- FutureTask 实现了 Runnable 接口，其 run() 方法是任务执行的入口。
+- run() 方法首先会尝试通过 CAS 将 runner 字段（记录执行任务的线程）从 null 设置为当前线程。这确保了即使多个线程调用 run()，实际的任务 (Callable 或 Runnable) 也只会被执行一次。
+- 执行 Callable 的 call() 方法（或 Runnable 的 run()）。
+- 根据执行结果：
+    - 正常完成：调用 set(result) 方法。
+    - 抛出异常：捕获异常并调用 setException(exception) 方法。
+    - set() 和 setException() 方法内部会使用 CAS 原子地更新 state 到 COMPLETING，然后设置 outcome 字段（存储结果或异常），最后将 state 更新为最终状态 (NORMAL 或 EXCEPTIONAL)，并唤醒等待的线程。
+3. 结果获取与等待 (get() 方法)：
+    - 调用 get() 方法时，首先检查当前 state。
+    - 如果任务已完成（状态为 NORMAL, EXCEPTIONAL, CANCELLED, INTERRUPTED），则根据状态立即返回结果或抛出相应的异常 (ExecutionException, CancellationException)。
+    - 如果任务未完成（状态为 NEW），调用 get() 的线程需要等待。FutureTask 使用了一种类似于 AQS (AbstractQueuedSynchronizer) 的等待/通知机制：
+        - 创建一个 WaitNode 对象代表当前等待线程，并将其加入一个单向链表（waiters 字段，也是 volatile 的）。
+        - 使用 LockSupport.park() 阻塞当前线程。
+        - 当任务完成时（在 set() 或 setException() 后的 finishCompletion() 方法中），会遍历 waiters 链表，并使用 LockSupport.unpark() 唤醒所有等待的线程。
+        - 被唤醒的线程会再次检查状态并获取结果或异常。
+这种基于 LockSupport 的机制比传统的 synchronized + wait/notify 更轻量和高效。
+4. 任务取消 (cancel() 方法)：
+    - 调用 cancel(mayInterruptIfRunning) 时，会尝试通过 CAS 将状态从 NEW 更新为 CANCELLED 或 INTERRUPTING。
+    - 只有在 NEW 状态下才能成功取消。
+    - 如果 mayInterruptIfRunning 为 true 且任务正在运行，会尝试通过 Thread.interrupt() 中断执行任务的线程 (runner)。
+    - 取消成功后也会调用 finishCompletion() 唤醒等待者。
+线程安全保证：
+- FutureTask 的线程安全主要依赖于 volatile 保证可见性，以及 CAS 操作保证关键状态转换和字段设置（如 state, runner, outcome）的原子性，避免了使用重量级的 synchronized 锁。
+
+总而言之，FutureTask 通过 volatile 状态变量、CAS 原子操作以及 LockSupport 实现的等待/通知机制，构建了一个高效、线程安全的异步任务执行和结果管理框架。
+
+面试版本:
+FutureTask 的实现原理主要是基于状态管理、CAS 原子操作和一种轻量级的等待/通知机制。
+1. 状态管理与 CAS：FutureTask 内部有一个 volatile 的 state 变量来表示任务的不同状态，比如新建、运行中、完成、异常、取消等。关键的状态转换，比如设置结果或者取消任务，都通过 CAS 操作来保证原子性，确保在并发环境下状态的正确更新，并且避免了使用重量级的锁。volatile 保证了状态的可见性。
+2. 任务执行 (run 方法)：run 方法是任务执行的核心。它首先会用 CAS 尝试设置一个 runner 字段为当前线程，这能确保任务的实际逻辑（Callable 或 Runnable）只被执行一次。执行完任务后，如果是正常结束，就调用 set 方法保存结果；如果抛了异常，就调用 setException 方法保存异常。这两个方法内部也是通过 CAS 更新状态并设置 outcome 字段来保存结果或异常。
+3. 结果获取 (get 方法)：get 方法用于获取结果。如果任务已经完成，它会根据最终状态立即返回结果或抛出异常（如 ExecutionException, CancellationException）。如果任务还没完成，调用 get 的线程会阻塞等待。这里的等待机制类似 AQS，它把等待线程包装成节点放入一个等待队列，然后使用 LockSupport.park() 挂起线程。
+4. 等待/通知机制：当任务最终完成（在 set 或 setException 后），会调用 finishCompletion 方法，该方法会遍历等待队列，并使用 LockSupport.unpark() 唤醒所有等待的线程。被唤醒的线程会重新检查状态并获取结果。这种基于 LockSupport 的机制比 synchronized + wait/notify 更高效。
+5. 取消 (cancel 方法)：cancel 方法也是通过 CAS 尝试修改状态来实现取消。如果允许中断正在运行的任务，它还会调用执行线程的 interrupt 方法。
+总的来说，FutureTask 通过巧妙地结合 volatile、CAS 和 LockSupport，在不使用显式锁的情况下，实现了高效且线程安全的异步任务管理和结果获取。
 ## FutureTask的线程安全是由什么保证的？
 FutureTask的线程安全主要由以下机制保证：
 1. 状态变量的原子更新：
 - 使用volatile int state存储任务状态
 - 通过unsafe.compareAndSwapInt()（CAS操作）来原子性地更新状态
-2. 内存可见性保证：
+ 2. 内存可见性保证：
 - 关键字段使用volatile修饰，确保修改对所有线程立即可见
 - 特别是state、runner和waiters字段都是volatile的
 3. 同步等待机制：
@@ -330,6 +382,54 @@ CompletableFuture.allOf(completableFutures.toArray(new CompletableFuture[0]))
         uploadAllToUpstream(results);
     });
 ```
+
+## FutureTask是怎么接收结果的，可能有哪些结果
+FutureTask 接收结果的核心机制是内部的 run() 方法以及结果设置方法 (set 和 setException)，并利用其状态 (state) 和结果存储字段 (outcome) 来管理。
+结果接收过程：
+1. 执行任务: 当 FutureTask 的 run() 方法被调用时（通常由线程池中的线程或单独创建的线程执行），它会：
+    - 首先检查任务状态，确保任务只执行一次。它会尝试用 CAS 将 runner 字段设置为当前线程。
+    - 调用内部包装的 Callable 对象的 call() 方法（或者 Runnable 的 run() 方法）。
+2. 设置结果:
+    - 正常完成: 如果 call() 方法成功执行并返回一个结果 v，run() 方法会调用内部的 set(V v) 方法。set() 方法会：
+        - 使用 CAS 原子地尝试将 state 从 NEW 更新为 COMPLETING。
+        - 如果 CAS 成功，将结果 v 存入 outcome 字段。
+        - 将 state 更新为最终状态 NORMAL。
+        - 调用 finishCompletion() 唤醒所有等待结果的线程（即阻塞在 get() 上的线程）。
+    - 异常完成: 如果 call() 方法执行过程中抛出了异常 t，run() 方法会捕获这个异常，并调用内部的 setException(Throwable t) 方法。setException() 方法与 set() 类似：
+        - 使用 CAS 原子地尝试将 state 从 NEW 更新为 COMPLETING。
+        - 如果 CAS 成功，将异常 t 存入 outcome 字段。
+        - 将 state 更新为最终状态 EXCEPTIONAL。
+        - 调用 finishCompletion() 唤醒所有等待结果的线程。
+3. 结果/异常存储: 无论是正常结果还是异常，都存储在 outcome 这个 Object 类型的字段里。
+可能的结果 (通过 get() 方法体现):
+调用 FutureTask 的 get() 方法时，根据任务的最终状态 (state) 和存储在 outcome 里的值，可能遇到以下几种情况：
+1. 正常结果: 如果任务状态是 NORMAL，get() 方法会直接返回存储在 outcome 字段中的计算结果 (类型为 V)。
+2. 执行异常 (ExecutionException): 如果任务状态是 EXCEPTIONAL，get() 方法会抛出 ExecutionException，其 cause 就是存储在 outcome 字段中的原始异常 (Throwable)。你需要捕获 ExecutionException 并通过 getCause() 获取原始异常信息。
+3. 任务取消 (CancellationException): 如果任务在完成前被取消 (状态为 CANCELLED 或 INTERRUPTED)，调用 get() 方法会抛出 CancellationException。
+4. 等待中断 (InterruptedException): 如果调用 get() 方法的线程在等待结果期间被其他线程中断 (interrupt())，get() 方法会抛出 InterruptedException。
+5. 等待超时 (TimeoutException): 如果调用的是带超时的 get(long timeout, TimeUnit unit) 方法，并且在指定时间内任务仍未完成，该方法会抛出 TimeoutException。
+
+总结来说，FutureTask 通过 run() 方法执行任务，并利用 set() 或 setException() 结合 CAS 操作原子地将正常结果或异常存入 outcome 字段，并更新最终状态。调用者通过 get() 方法获取结果时，会根据最终状态返回结果或抛出相应的异常。
+
+
+面试版本:
+FutureTask 接收结果的核心过程是这样的：
+1. 任务执行与结果设置：当 FutureTask 被执行时（通常在线程池或其他线程中），它的 run() 方法会调用我们传入的 Callable 或 Runnable。
+    - 如果任务正常完成，run() 方法会调用内部的 set() 方法，将计算结果保存在内部的一个 outcome 字段中，并将任务状态更新为 NORMAL。
+    - 如果任务执行过程中抛出异常，run() 方法会捕获这个异常，调用内部的 setException() 方法，将这个异常保存在 outcome 字段中，并将任务状态更新为 EXCEPTIONAL。
+    - 这个设置结果或异常的过程是通过 CAS 操作来保证原子性的，确保结果只被设置一次。
+2. 结果获取与可能结果：当外部线程调用 FutureTask 的 get() 方法来获取结果时，会根据任务的最终状态返回不同的结果：
+    - 正常返回：如果任务状态是 NORMAL，get() 方法会返回之前保存在 outcome 里的计算结果。
+    - 抛出 ExecutionException：如果任务状态是 EXCEPTIONAL，get() 方法会抛出 ExecutionException，这个异常包装了任务执行时实际抛出的原始异常。我们可以通过 getCause() 获取原始异常。
+    - 抛出 CancellationException：如果任务在完成前被调用了 cancel() 方法取消了，那么调用 get() 会抛出 CancellationException。
+    - 抛出 InterruptedException：如果调用 get() 的线程在等待结果的过程中被中断了，get() 会抛出 InterruptedException。
+    - 抛出 TimeoutException：如果调用的是带超时的 get() 方法，并且在规定时间内没有获得结果，会抛出 TimeoutException。
+
+简单来说，FutureTask 通过在执行线程中设置内部状态和结果/异常，然后在调用 get() 的线程中根据状态返回相应的结果或抛出特定的异常。
+
+## FutureTask打断线程是打断当前线程吗还是主线程
+FutureTask.cancel(true) 尝试打断的是正在执行这个 FutureTask 内部任务（即 Callable 或 Runnable）的那个线程，而不是调用 cancel() 方法的线程，也不是主线程（除非主线程碰巧就是执行这个任务的线程）。
+
 # 使用场景
 ## 描述FutureTask在线程池中的应用
 在线程池中，FutureTask的应用非常广泛：
