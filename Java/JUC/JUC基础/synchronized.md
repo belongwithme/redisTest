@@ -3,15 +3,25 @@
 
 ## 你了解synchronized吗?
 我了解 synchronized。它是 Java 中用于实现线程同步的关键字，是一种内置锁。
-它的核心作用主要有三点：保证互斥性，即同一时间只有一个线程能执行同步代码；保证可见性，确保线程对共享变量的修改能被其他线程看到；以及保证有序性，防止指令重排序。
-synchronized 可以修饰实例方法、静态方法和代码块。修饰实例方法时锁是 this 对象，修饰静态方法时锁是类的 Class 对象，修饰代码块则可以指定锁对象。
-JVM 实现 synchronized 主要依靠 monitorenter 和 monitorexit 指令（用于代码块）或方法的 ACC_SYNCHRONIZED 标志。底层依赖对象头的 Mark Word 来记录锁信息，并使用 ObjectMonitor 来管理线程。
+它的核心作用主要有三点：
+1. 保证互斥性
+2. 保证可见性
+3. 保证有序性
+synchronized 可以修饰实例方法、静态方法和代码块:
+1. 修饰实例方法时锁是 this 对象
+2. 修饰静态方法时锁是类的 Class 对象
+3. 修饰代码块则可以指定锁对象。
+JVM 实现 synchronized 主要依靠 monitorenter 和 monitorexit 指令（用于代码块）或方法的 ACC_SYNCHRONIZED 标志。
+底层依赖对象头的 Mark Word 来记录锁信息，并使用 ObjectMonitor 来管理线程。
 为了提升性能，从 JDK 6 开始，synchronized 引入了锁优化机制，包括锁升级：从无锁状态，根据竞争情况可能升级为偏向锁、轻量级锁，最后到重量级锁。还有自适应自旋、锁消除和锁粗化等优化手段。
 相比 volatile，synchronized 还能保证原子性。相比 ReentrantLock，synchronized 使用更简单，由 JVM 自动管理锁的释放，但在功能灵活性上，如可中断、超时获取、公平性等方面，ReentrantLock 更强大。
 
 ## 请解释synchronized关键字的作用
 synchronized关键字是Java提供的一种内置锁机制，用于实现线程同步.
-它具有三个核心作用：互斥访问,内存可见性保证,防止指令重排序 - 互斥性,可见性,有序性。
+它具有三个核心作用：
+1. 互斥访问
+2. 内存可见性保证
+3. 防止指令重排序
 - 互斥访问：确保同一时刻只有一个线程可以执行被synchronized保护的代码块或方法，防止多线程并发访问共享资源时产生冲突。
 - 内存可见性：synchronized不仅提供互斥访问，还保证线程在获取锁时会刷新工作内存中的变量值，释放锁时会将修改后的变量值刷新到主内存，从而保证可见性。
 - 防止指令重排序：synchronized代码块的执行具有原子性、可见性和有序性，编译器和处理器不会对synchronized块内的操作进行重排序。
