@@ -5,9 +5,9 @@
 ReentrantReadWriteLock是Java并发包中提供的一个读写锁实现，它维护了一对相关的锁：一个用于只读操作的读锁和一个用于写入操作的写锁。核心特点是允许多个读线程同时访问共享资源，而写线程访问时会阻塞所有其他线程（包括读线程）。
 ReentrantReadWriteLock主要解决了"读多写少"场景下的性能问题。在传统的互斥锁（如synchronized或ReentrantLock）中，无论是读操作还是写操作，同一时刻只允许一个线程访问共享资源。这意味着即使是不会修改数据的读操作也会互相阻塞，造成不必要的性能损失。
 通过读写分离的设计，ReentrantReadWriteLock允许：
-多个读线程可以同时获取读锁并发访问共享资源
-写线程获取写锁时独占访问，确保数据一致性
-写线程获取写锁时会阻塞所有读线程，防止读到不一致的数据
+1. 多个读线程可以同时获取读锁并发访问共享资源
+2. 写线程获取写锁时独占访问，确保数据一致性
+3. 写线程获取写锁时会阻塞所有读线程，防止读到不一致的数据
 这种机制在读操作远多于写操作的场景下能显著提高系统的并发性能和吞吐量，同时保证数据的一致性。
 
 
@@ -15,15 +15,15 @@ ReentrantReadWriteLock主要解决了"读多写少"场景下的性能问题。�
 1. 它是什么？
 它内部维护了两个锁：一个读锁 (ReadLock) 和一个写锁 (WriteLock)。
 核心特点是：允许多个线程同时持有读锁进行并发读取，但写锁是独占的。
-2. 它解决了什么问题？
+1. 它解决了什么问题？
 主要解决了“读多写少”场景下的性能瓶颈问题。
 像 synchronized 或 ReentrantLock 这样的传统互斥锁，不管是读还是写，同一时间只允许一个线程访问，即使是读操作也会相互阻塞，造成性能浪费。
 ReentrantReadWriteLock 通过读写分离，允许多个读线程并发访问，大大提高了这类场景下的并发性能和系统吞吐量。
-3. 核心机制：
+1. 核心机制：
 读锁共享：多个线程可以同时获取读锁，并发读取共享资源。
 写锁独占：当一个线程获取写锁时，其他所有线程（包括读线程和写线程）都会被阻塞，确保写入时的数据一致性。
 写锁优先（默认非公平策略下）：当有线程请求写锁时，后续的读锁请求会被阻塞，防止写线程饥饿。
-4. 与 ReentrantLock 的关键区别：
+1. 与 ReentrantLock 的关键区别：
 ReentrantLock 是互斥锁，任何时候只有一个线程能访问。
 ReentrantReadWriteLock 是读写锁，允许多个读线程并发。因此，在读远多于写的场景下，ReentrantReadWriteLock 通常性能更好。
 ## ReentrantReadWriteLock与ReentrantLock的主要区别是什么？
@@ -31,17 +31,17 @@ ReentrantReadWriteLock与ReentrantLock的主要区别包括：
 1. 锁类型：
 - ReentrantLock是互斥锁，同一时刻只允许一个线程访问共享资源
 - ReentrantReadWriteLock是读写锁，区分读写操作，允许多个读线程同时访问
-2. 并发性能：
+1. 并发性能：
 - 在读多写少场景下，ReentrantReadWriteLock性能更高，因为读操作可以并发执行
 - 在读写均衡或写多场景下，ReentrantLock可能更简单高效，因为ReentrantReadWriteLock有额外开销
-3. API复杂度：
+1. API复杂度：
 - ReentrantLock API更简单，只有一种锁
 - ReentrantReadWriteLock需要分别管理读锁和写锁，使用更复杂
-4. 功能支持：
+1. 功能支持：
 - 两者都支持公平性选择、可重入性、可中断获取锁
 - ReentrantReadWriteLock支持锁降级（写锁降级为读锁）
 - ReentrantLock的Condition功能更完整，ReadWriteLock的读锁不支持Condition
-5. 内部实现：
+1. 内部实现：
 - 都基于AQS，但ReentrantReadWriteLock使用state的不同位表示读写锁状态
 - ReentrantReadWriteLock内部维护了两个锁：ReadLock和WriteLock
 

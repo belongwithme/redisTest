@@ -175,6 +175,48 @@ AQS的等待队列是一个FIFO双向链表，基于CLH队列变种实现。
 
 
 出队流程扩展:
+当持有同步状态的线程调用`release(arg)`方法释放同步状态时，会触发后续节点的出队和唤醒逻辑。这个过程主要涉及到`release`方法本身以及它调用的`unparkSuccessor`方法。
+
+1.  **调用 `release(arg)` 方法**:
+    *   线程调用`release(arg)`方法，尝试释放同步状态。
+    *   内部会调用由子类实现的`tryRelease(arg)`方法。这个方法会根据具体的同步器逻辑（例如ReentrantLock中减少重入计数）来改变`state`变量。
+
+2.  **`tryRelease(arg)` 执行成功**:
+    *   如果`tryRelease(arg)`返回`true`，表示同步状态成功释放。
+    *   接下来，代码会检查当前队列的头节点`head`。如果`head`不为`null`且其`waitStatus`不为0（通常意味着其后继节点处于`SIGNAL`状态，需要被唤醒），则会调用`unparkSuccessor(head)`方法。
+    *   `release`方法源码片段:
+        ```java
+        public final boolean release(int arg) {
+            if (tryRelease(arg)) {
+                Node h = head;
+                if (h != null && h.waitStatus != 0)
+                    unparkSuccessor(h); // 核心唤醒逻辑
+                return true;
+            }
+            return false;
+        }
+        ```
+
+3.  **`unparkSuccessor(Node node)` 方法执行**:
+    *   这个方法是唤醒后继节点的关键。参数`node`通常是当前的头节点`head`。
+    *   `unparkSuccessor`会尝试找到一个合适（非`CANCELLED`状态）的后继节点并唤醒它。
+    *   它首先会检查`node`（即`head`）的`waitStatus`。如果小于0（例如`SIGNAL`），会尝试将其CAS设置为0，表示唤醒的责任已经开始处理。
+    *   然后，它会找到`node`的直接后继`s = node.next`。
+    *   如果后继节点`s`为`null`或者其`waitStatus`大于0（即`CANCELLED`状态，表示该线程已放弃等待），则会从队列尾部向前遍历（`for (Node t = tail; t != null && t != node; t = t.prev)`），找到离`head`最近的、`waitStatus`小于等于0的节点作为实际需要唤醒的后继节点。这是为了处理队列中可能存在的已取消节点，确保唤醒的是一个有效的、正在等待的线程。
+    *   一旦找到了合适的后继节点 `s`，就会调用`LockSupport.unpark(s.thread)`来唤醒该节点对应的线程。
+
+4.  **被唤醒的线程尝试获取同步状态**:
+    *   被`unparkSuccessor`唤醒的线程，之前是阻塞在`acquireQueued`方法中的`LockSupport.park(this)`调用处。
+    *   唤醒后，该线程会从`park`点继续执行，进入下一轮的`acquireQueued`的自旋循环。
+    *   在循环中，它会再次检查自己是否是队列中的第一个等待者（即前驱是头节点，`p == head`），如果是，就再次尝试调用`tryAcquire(arg)`。
+
+5.  **获取成功并成为新的头节点**:
+    *   如果此时`tryAcquire(arg)`成功（因为前一个持有者已经通过`tryRelease`释放了同步状态），那么这个被唤醒的节点就会将自己设置为新的头节点 (`setHead(node)`)。
+    *   `setHead`方法会将当前节点设为head，并将其`thread`和`prev`字段设为`null`（因为头节点不需要这些信息，且有助于GC）。
+    *   原头节点的`next`引用会被断开（间接通过新head的`prev`为null实现）。
+    *   这个线程成功获取了同步状态，`acquireQueued`方法返回`false`（表示未在等待过程中被中断），整个`acquire`调用完成。如果等待过程中被中断过，`acquireQueued`会返回`true`，最终`acquire`方法会调用`selfInterrupt()`。
+
+这个过程确保了当同步状态被释放时，等待队列中的下一个合适的线程会被公平地唤醒（通常是FIFO顺序，除非有节点取消），并有机会获取同步状态，从而实现了线程的有序调度和资源的有效利用。
 
 # 源码分析问题
 ## 请解释AQS中acquire和release方法的实现原理
@@ -408,7 +450,7 @@ class SimpleBlockingQueue<T> {
 
 代码解释：
 获取锁 (lock.lock()): 生产者 (put) 或消费者 (take) 线程首先尝试获取 ReentrantLock。如果获取成功，它就进入了临界区。
-检查条件 (while (queue.size() == capacity) 或 while (queue.isEmpty())): 在持有锁的情况下，线程检查它关心的业务条件是否满足。注意这里使用 while 循环而不是 if，这是为了防止“虚假唤醒”（spurious wakeup），即线程被唤醒了但条件仍然不满足。
+检查条件 (while (queue.size() == capacity) 或 while (queue.isEmpty())): 在持有锁的情况下，线程检查它关心的业务条件是否满足。注意这里使用 while 循环而不是 if，这是为了防止"虚假唤醒"（spurious wakeup），即线程被唤醒了但条件仍然不满足。
 条件不满足，调用 await():
 如果队列满了（生产者）或空了（消费者），线程会调用相应 Condition 的 await() 方法。
 这时，线程会自动释放它持有的 lock。
