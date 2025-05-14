@@ -1,4 +1,24 @@
 # 一、基础认知与原理
+## CompletableFuture了解吗
+`CompletableFuture` 是 Java 8 引入的一个用于异步编程的类，它实现了 `Future` 和 `CompletionStage` 接口。它的出现主要是为了解决传统 `Future` 接口存在的一些痛点。
+
+`Future` 的主要问题在于：
+
+1.  它的 `get()` 方法是 **阻塞的**，调用时会一直等待任务完成，容易造成线程阻塞。
+2.  它缺乏任务完成后的 **回调机制**，我们通常需要通过 `isDone()` 方法轮询来判断任务是否完成，编码比较繁琐。
+3.  `Future` 自身不支持多个任务的 **组合**，比如等待多个任务都完成后执行某个操作，实现起来比较复杂。
+4.  **异常处理** 也比较被动，必须在调用 `get()` 时通过 `try-catch` 来捕获。
+
+而 `CompletableFuture` 很好地解决了这些问题，它与 `Future` 的核心区别在于：
+
+1.  **非阻塞性**: `CompletableFuture` 提供了大量基于回调的方法（如 `thenApply`, `thenAccept` 等），允许我们在任务完成后自动执行后续操作，避免了 `get()` 的阻塞等待。这是一种“推模式”，任务完成后结果会自动推送给后续处理逻辑，而 `Future` 是“拉模式”，需要主动去拉取结果。
+2.  **函数式编程与链式调用**: 它利用 `CompletionStage` 接口提供了流式 API，支持函数式编程，可以像流水线一样将多个异步操作串联起来（`thenApply`, `thenCompose`），代码更简洁、更具表达力。
+3.  **强大的组合能力**: `CompletableFuture` 提供了 `allOf` 和 `anyOf` 等静态方法，可以方便地组合多个异步任务，实现等待所有任务完成或任意一个任务完成的逻辑。
+4.  **更完善的异常处理**: 它提供了 `exceptionally` 和 `handle` 等方法，可以在异步调用链中显式、优雅地处理可能发生的异常，而不是等到最后 `get()` 时才处理。
+5.  **显式完成控制**: `CompletableFuture` 还可以被外部手动完成（通过 `complete` 或 `completeExceptionally` 方法），这使得它可以更好地与基于回调的 API 进行桥接。
+
+总结来说，`Future` 解决了基本的‘提交任务，稍后获取结果’的问题，但交互方式比较原始和阻塞。`CompletableFuture` 则提供了一套现代化、功能强大的异步编程解决方案，它通过非阻塞的回调、链式调用、任务组合和灵活的异常处理，极大地简化了复杂异步流程的开发，特别适合构建高并发、响应式的应用程序。
+
 ## 什么是CompletableFuture？它与Future的区别是什么？
 CompletableFuture是Java 8引入的一个类，用于异步编程。它实现了Future和CompletionStage接口。相比Future，CompletableFuture提供了非阻塞的获取结果、函数式编程支持、流式API（CompletionStage）、显式的任务完成控制以及更好的异常处理机制。
 Future的主要问题在于：
