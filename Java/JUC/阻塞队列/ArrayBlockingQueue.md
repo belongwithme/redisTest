@@ -50,6 +50,24 @@ ArrayBlockingQueue 主要提供了三个公共构造函数：
 - 注意：指定的 capacity 必须大于或等于集合 c 的大小，否则会抛出 IllegalArgumentException。集合 c 中的元素会按照其迭代器返回的顺序添加到队列中。
 
 # 原理实现问题
+## ArrayBlockingQueue的底层原理是什么?
+`ArrayBlockingQueue` 的底层是基于一个**定长的数组**来存储元素的。
+
+它的核心并发控制和阻塞功能主要依赖于 `java.util.concurrent.locks` 包下的**`ReentrantLock`** 和与之关联的两个 **`Condition` 对象**。
+
+1.  **线程安全**：所有对队列的访问和修改操作（比如 `put` 和 `take`）都会先获取这个全局的 `ReentrantLock`，确保了同一时间只有一个线程能操作队列，从而保证了原子性和数据一致性。
+2.  **阻塞机制**：
+    *   内部维护了两个 `Condition` 对象，通常叫做 `notEmpty` 和 `notFull`。
+    *   当生产者线程尝试 `put` 元素但队列已满时，它会在 `notFull` 条件上 `await()`，释放锁并进入等待状态。
+    *   当消费者线程尝试 `take` 元素但队列为空时，它会在 `notEmpty` 条件上 `await()`，释放锁并进入等待状态。
+3.  **唤醒机制**：
+    *   当消费者成功 `take` 一个元素后（队列从满变为不满），它会调用 `notFull.signal()` 来唤醒一个等待的生产者线程。
+    *   当生产者成功 `put` 一个元素后（队列从空变为不空），它会调用 `notEmpty.signal()` 来唤醒一个等待的消费者线程。
+
+通过这种 `Lock` 加 `Condition` 的组合，`ArrayBlockingQueue` 能够有效地管理线程间的协作，实现当队列满或空时的阻塞等待，以及在条件满足时精确唤醒对应类型的等待线程。同时，它也支持公平性策略，可以在创建时指定锁是公平的还是非公平的。”
+
+
+
 ## ArrayBlockingQueue是如何实现阻塞功能的？
 ArrayBlockingQueue 的阻塞功能是基于 java.util.concurrent.locks.ReentrantLock 和其关联的两个 Condition 对象来实现的。
 1. ReentrantLock: 提供了一个全局的互斥锁，保证了同一时间只有一个线程能对队列的内部数组和状态变量（如 count, putIndex, takeIndex）进行修改或检查。
