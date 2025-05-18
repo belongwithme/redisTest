@@ -79,6 +79,9 @@ CountDownLatch像是"学校放学"场景：老师（等待线程）要等所有�
     - 需要在"所有人到齐"时执行特定逻辑，CyclicBarrier的barrierAction非常便利
     - 仅需等待其他任务完成而无需额外动作时，CountDownLatch足够
 # 原理机制问题
+
+## CyclicBarrier用锁,为什么CountDownLatch用的是CAS?
+CountDownLatch 的 countDown 操作相对单一，CAS 是实现其原子递减的有效手段。而 CyclicBarrier 的 await 方法涉及到更复杂的状态转换、原子性要求更高的多步骤操作（如最后一个线程到达时的任务执行和屏障重置）、以及更精细的线程等待/唤醒管理（如处理屏障损坏）。对于这种复杂性，ReentrantLock 提供了对整个临界区操作的原子性保证，而 Condition 提供了灵活的线程协调机制。虽然 ReentrantLock 和 Condition 底层也依赖于 AQS（AQS 中也用到了 CAS），但它们为 CyclicBarrier 提供了更高层次、更易于管理复杂同步场景的工具。
 ## CyclicBarrier的内部实现原理是什么？它是如何实现线程同步的？
 CyclicBarrier的内部实现主要基于ReentrantLock和Condition机制，具体原理如下：
 1. 内部结构：
