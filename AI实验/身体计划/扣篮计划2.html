@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>扣篮训练计划 - 突破极限</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #00ff88;
+            --secondary-color: #ff6b35;
+            --dark-bg: #0a0a0a;
+            --light-bg: #ffffff;
+            --dark-text: #333333;
+            --light-text: #ffffff;
+            --card-bg-light: #f8f9fa;
+            --card-bg-dark: #1a1a1a;
+            --gradient-primary: linear-gradient(135deg, #00ff88, #00cc6a);
+            --gradient-secondary: linear-gradient(135deg, #ff6b35, #ff4500);
+            --shadow-light: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --shadow-dark: 0 10px 30px rgba(0, 255, 136, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+            transition: all 0.3s ease;
+        }
+
+        body.light-theme {
+            background-color: var(--light-bg);
+            color: var(--dark-text);
+        }
+
+        body.dark-theme {
+            background-color: var(--dark-bg);
+            color: var(--light-text);
+        }
+
+        /* Navigation */
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            padding: 1rem 0;
+            transition: all 0.3s ease;
+        }
+
+        .navbar.scrolled {
+            background: rgba(10, 10, 10, 0.98);
+            box-shadow: 0 2px 20px rgba(0, 255, 136, 0.1);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: var(--light-text);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary-color);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--gradient-primary);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .theme-toggle:hover {
+            background: var(--primary-color);
+            color: var(--dark-bg);
+        }
+
+        /* Hero Section */
+        .hero {
+            height: 100vh;
+            background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6)), 
+                        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><rect fill="%23000" width="1200" height="800"/><circle cx="600" cy="400" r="300" fill="%2300ff88" opacity="0.1"/><circle cx="300" cy="200" r="150" fill="%23ff6b35" opacity="0.1"/></svg>');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+        }
+
+        .hero-content {
+            max-width: 800px;
+            padding: 0 2rem;
+            animation: fadeInUp 1s ease;
+        }
+
+        .hero h1 {
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.1;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: var(--gradient-primary);
+            color: var(--dark-bg);
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-dark);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0, 255, 136, 0.3);
+        }
+
+        /* Sections */
+        .section {
+            padding: 5rem 0;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 4px;
+            background: var(--gradient-primary);
+            border-radius: 2px;
+        }
+
+        /* Analysis Cards */
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .analysis-card {
+            background: var(--card-bg-light);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: var(--shadow-light);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dark-theme .analysis-card {
+            background: var(--card-bg-dark);
+            box-shadow: var(--shadow-dark);
+        }
+
+        .analysis-card:hover {
+            transform: translateY(-10px);
+        }
+
+        .analysis-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--gradient-primary);
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        /* Training Plan */
+        .training-week {
+            background: var(--card-bg-light);
+            margin-bottom: 2rem;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: var(--shadow-light);
+            transition: all 0.3s ease;
+        }
+
+        .dark-theme .training-week {
+            background: var(--card-bg-dark);
+            box-shadow: var(--shadow-dark);
+        }
+
+        .week-header {
+            background: var(--gradient-primary);
+            color: var(--dark-bg);
+            padding: 1.5rem;
+            font-weight: 600;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .week-content {
+            padding: 2rem;
+            display: none;
+        }
+
+        .week-content.active {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        .exercise-list {
+            list-style: none;
+        }
+
+        .exercise-list li {
+            padding: 0.8rem 0;
+            border-bottom: 1px solid rgba(0, 255, 136, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .exercise-name {
+            font-weight: 500;
+        }
+
+        .exercise-details {
+            color: var(--primary-color);
+            font-size: 0.9rem;
+        }
+
+        /* Progress Chart */
+        .progress-container {
+            background: var(--card-bg-light);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: var(--shadow-light);
+            margin-bottom: 3rem;
+        }
+
+        .dark-theme .progress-container {
+            background: var(--card-bg-dark);
+            box-shadow: var(--shadow-dark);
+        }
+
+        .progress-bar {
+            background: rgba(0, 255, 136, 0.1);
+            height: 20px;
+            border-radius: 10px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--gradient-primary);
+            border-radius: 10px;
+            transition: width 2s ease;
+        }
+
+        /* Pricing */
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .pricing-card {
+            background: var(--card-bg-light);
+            padding: 2.5rem;
+            border-radius: 20px;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-light);
+        }
+
+        .dark-theme .pricing-card {
+            background: var(--card-bg-dark);
+            box-shadow: var(--shadow-dark);
+        }
+
+        .pricing-card.featured {
+            transform: scale(1.05);
+            background: var(--gradient-primary);
+            color: var(--dark-bg);
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-10px);
+        }
+
+        .pricing-card.featured:hover {
+            transform: scale(1.05) translateY(-10px);
+        }
+
+        .price {
+            font-size: 3rem;
+            font-weight: 800;
+            margin: 1rem 0;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--dark-bg);
+            color: var(--light-text);
+            text-align: center;
+            padding: 3rem 0;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                max-height: 0;
+            }
+            to {
+                opacity: 1;
+                max-height: 500px;
+            }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .hero h1 {
+                font-size: 3rem;
+            }
+            
+            .section {
+                padding: 3rem 1rem;
+            }
+            
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Scroll animations */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="dark-theme">
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <div class="logo">扣篮计划</div>
+            <ul class="nav-links">
+                <li><a href="#hero">首页</a></li>
+                <li><a href="#analysis">分析</a></li>
+                <li><a href="#training">训练</a></li>
+                <li><a href="#progress">进度</a></li>
+                <li><a href="#pricing">方案</a></li>
+            </ul>
+            <button class="theme-toggle" id="themeToggle">
+                <i class="fas fa-sun"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="hero">
+        <div class="hero-content">
+            <h1>突破极限</h1>
+            <p>从摸篮板到扣篮的完整训练计划 - 180cm也能飞翔</p>
+            <a href="#training" class="cta-button">开始训练</a>
+        </div>
+    </section>
+
+    <!-- Analysis Section -->
+    <section class="section" id="analysis">
+        <h2 class="section-title fade-in">自我分析</h2>
+        <div class="analysis-grid">
+            <div class="analysis-card fade-in">
+                <div class="card-icon"><i class="fas fa-ruler-vertical"></i></div>
+                <h3 class="card-title">身体数据</h3>
+                <p><strong>身高:</strong> 180cm</p>
+                <p><strong>体重:</strong> 81.5kg (163斤)</p>
+                <p><strong>当前摸高:</strong> 篮板下沿 (~2.75m)</p>
+                <p><strong>目标摸高:</strong> 篮筐以上 (~3.20m)</p>
+            </div>
+            
+            <div class="analysis-card fade-in">
+                <div class="card-icon"><i class="fas fa-dumbbell"></i></div>
+                <h3 class="card-title">力量水平</h3>
+                <p><strong>深蹲:</strong> 110kg (1.35倍体重)</p>
+                <p><strong>硬拉:</strong> 100kg (1.23倍体重)</p>
+                <p><strong>卧推:</strong> 50kg (0.61倍体重)</p>
+                <p><strong>核心:</strong> 平板支撑2分半</p>
+            </div>
+            
+            <div class="analysis-card fade-in">
+                <div class="card-icon"><i class="fas fa-chart-line"></i></div>
+                <h3 class="card-title">弹跳分析</h3>
+                <p><strong>当前弹跳:</strong> 40-45cm</p>
+                <p><strong>目标弹跳:</strong> 80-90cm</p>
+                <p><strong>提升幅度:</strong> 100%</p>
+                <p><strong>预计周期:</strong> 6-12个月</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Training Plan Section -->
+    <section class="section" id="training">
+        <h2 class="section-title fade-in">训练计划</h2>
+        
+        <div class="training-week fade-in">
+            <div class="week-header" onclick="toggleWeek(this)">
+                <span>周一 - 力量训练日 (下肢重点)</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="week-content">
+                <ul class="exercise-list">
+                    <li>
+                        <span class="exercise-name">深蹲 (Back Squat)</span>
+                        <span class="exercise-details">3-5组 × 5-8次</span>
+                    </li>
+                    <li>
+                        <span class="exercise-name">硬拉 (Deadlift)</span>
+                        <span class="exercise-details">3-5组 × 3-6次</span>
+                    </li>
+                    <li>
+                        <span class="exercise-name">箭步蹲 (Lunges)</span>
+                        <span class="exercise-details">3-4组 × 8-12次/腿</span>
+                    </li>
+                    <li>
+                        <span class="exercise-name">提踵 (Calf Raises)</span>
+                        <span class="exercise-details">3-4组 × 15-20次</span>
+                    </li>
+                    <li>
+                        <span class="exercise-name">核心训练</span>
+                        <span class="exercise-details">悬垂举腿 3×10-15</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="training-week fade-in">
+            <div class="week-header" onclick="toggleWeek(this)">
+                <span>周二 - 爆发力与弹跳技术日</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="week-content">
+                <ul class="exercise-list">
+                    <li>
+                        <span class="exercise-name">纵跳 (Vertical Jumps)</span>
+                        <span class="exercise-details">3-4组 × 5-8次</span>
+                    </li>
+                    <li>
+                        <span class="exercise-name">跳箱 (Box Jumps)</span>
+                        <span class="exercise-details">3-4组 × 5-8次</span>
+                    </li>
+                    <li>
+                        <span class="exercise-name">原地纵跳摸高</span>
+                        <span class="exercise-details">多次练习</span>
+                    </li>
+                    <li>
+                        <span class="exercise-name">单脚起跳练习</span>
+                        <span class="exercise-details">技术训练</span>
+                    </li>
+                    <li>
+                        <span class="exercise-name">快速半蹲跳</span>
+                        <span class="exercise-details">3组 × 8-10次</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="training-week fade-in">
+            <div class="week-header" onclick="toggleWeek(this)">
+                <span>周四 - 力量训练日 (上肢与辅助下肢)</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="week-content">
+                <ul class="exercise-list">
+                    <li>
+                        <span class="exercise-name">卧推 (Bench Press)</span>
+                        <span class="exercise-details">3-5组 × 5-8次</span>
+                    </li>
+                    <li>
+                        <span class="exercise-name">过头推举</span>
+                        <span class="exercise-details">3-4组 × 6-10次</span>
+                    </li>
+                    <li>
+                        <span class="exercise-name">引体向上</span>
+                        <span class="exercise-details">3-4组 × 力竭</span>
+                    </li>
+                    <li>
+                        <span class="exercise-name">划船训练</span>
+                        <span class="exercise-details">3-4组 × 8-12次</span>
+                    </li>
+                    <li>
+                        <span class="exercise-name">臀桥</span>
+                        <span class="exercise-details">3-4组 × 10-15次</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="training-week fade-in">
+            <div class="week-header" onclick="toggleWeek(this)">
+                <span>周五 - 爆发力与专项练习日</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="week-content">
+                <ul class="exercise-list">
+                    <li>
+                        <span class="exercise-name">立定跳远</span>
+                        <span class="exercise-details">3-4组 × 5-8次</span>
+                    </li>
+                    <li>
+                        <span class="exercise-name">深蹲跳</span>
+                        <span class="exercise-details">3-4组 × 8-10次</span>
+                    </li>
+                    <li>
+                        <span class="exercise-name">跳深练习</span>
+                        <span class="exercise-details">2-3组 × 3-5次</span>
+                    </li>
+                    <li>
+                        <span class="exercise-name">助跑摸高</span>
+                        <span class="exercise-details">反复练习</span>
+                    </li>
+                    <li>
+                        <span class="exercise-name">协调性训练</span>
+                        <span class="exercise-details">跳绳、敏捷梯</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Progress Section -->
+    <section class="section" id="progress">
+        <h2 class="section-title fade-in">训练进度</h2>
+        <div class="progress-container fade-in">
+            <h3>弹跳高度进展</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 45%" data-progress="45"></div>
+            </div>
+            <p>当前: 45cm / 目标: 90cm</p>
+        </div>
+        
+        <div class="progress-container fade-in">
+            <h3>力量提升进展</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 60%" data-progress="60"></div>
+            </div>
+            <p>深蹲: 110kg → 目标: 160kg</p>
+        </div>
+        
+        <div class="progress-container fade-in">
+            <h3>技术掌握进展</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 30%" data-progress="30"></div>
+            </div>
+            <p>起跳技术优化进行中</p>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="section" id="pricing">
+        <h2 class="section-title fade-in">训练方案</h2>
+        <div class="pricing-grid">
+            <div class="pricing-card fade-in">
+                <h3>基础方案</h3>
+                <div class="price">¥299</div>
+                <ul style="list-style: none; text-align: left;">
+                    <li>✓ 基础训练计划</li>
+                    <li>✓ 动作指导视频</li>
+                    <li>✓ 营养建议</li>
+                    <li>✓ 3个月支持</li>
+                </ul>
+                <a href="#" class="cta-button">选择方案</a>
+            </div>
+            
+            <div class="pricing-card featured fade-in">
+                <h3>专业方案</h3>
+                <div class="price">¥599</div>
+                <ul style="list-style: none; text-align: left;">
+                    <li>✓ 个性化训练计划</li>
+                    <li>✓ 一对一指导</li>
+                    <li>✓ 进度跟踪系统</li>
+                    <li>✓ 6个月支持</li>
+                    <li>✓ 营养补剂建议</li>
+                </ul>
+                <a href="#" class="cta-button">推荐方案</a>
+            </div>
+            
+            <div class="pricing-card fade-in">
+                <h3>精英方案</h3>
+                <div class="price">¥999</div>
+                <ul style="list-style: none; text-align: left;">
+                    <li>✓ VIP定制计划</li>
+                    <li>✓ 24/7专家支持</li>
+                    <li>✓ 实时数据分析</li>
+                    <li>✓ 12个月支持</li>
+                    <li>✓ 线下指导机会</li>
+                </ul>
+                <a href="#" class="cta-button">选择方案</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2024 扣篮训练计划. 突破极限，实现梦想.</p>
+    </footer>
+
+    <script>
+        // Theme Toggle
+        const themeToggle = document.getElementById('themeToggle');
+        const body = document.body;
+
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark-theme');
+            body.classList.toggle('light-theme');
+            
+            const icon = themeToggle.querySelector('i');
+            if (body.classList.contains('dark-theme')) {
+                icon.className = 'fas fa-sun';
+            } else {
+                icon.className = 'fas fa-moon';
+            }
+        });
+
+        // Navbar Scroll Effect
+        window.addEventListener('scroll', () => {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 100) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Smooth Scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Training Week Toggle
+        function toggleWeek(header) {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('i');
+            
+            content.classList.toggle('active');
+            
+            if (content.classList.contains('active')) {
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // Scroll Animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-in').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Progress Bar Animation
+        const progressBars = document.querySelectorAll('.progress-fill');
+        const progressObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const progressBar = entry.target;
+                    const progress = progressBar.getAttribute('data-progress');
+                    progressBar.style.width = progress + '%';
+                }
+            });
+        }, { threshold: 0.5 });
+
+        progressBars.forEach(bar => {
+            bar.style.width = '0%';
+            progressObserver.observe(bar);
+        });
+
+        // Parallax Effect for Hero
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const hero = document.querySelector('.hero');
+            if (hero) {
+                hero.style.transform = `translateY(${scrolled * 0.5}px)`;
+            }
+        });
+
+        // Mobile Menu Toggle (if needed)
+        const mobileMenuToggle = () => {
+            // Add mobile menu functionality here if needed
+        };
+    </script>
+</body>
+</html>
