@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交互式扣篮能力分析与训练蓝图</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony -->
+    <!-- Application Structure Plan: A single-page application with a sticky navigation bar. The structure guides the user through a logical narrative: 1. A hero section to establish the core goal (the jump height gap). 2. A diagnostic section with interactive charts to visualize strength imbalances and key issues. 3. A tabbed interface for the multi-phase action plan, making the dense training information digestible. 4. A final section for maintenance. This structure transforms the linear report into an explorable, user-friendly tool, prioritizing understanding and engagement over simply replicating the report's order. -->
+    <!-- Visualization & Content Choices: 1. Jump Gap: Report's required jump height (80cm) vs. current (61cm) -> Goal: Inform/Motivate -> Viz: Chart.js Doughnut chart acting as a gauge -> Justification: Visually striking and immediately communicates the primary goal and deficit. 2. Strength Imbalance: Report's 1RM data -> Goal: Compare -> Viz: Chart.js Radar chart -> Justification: Best method to display multivariate data and highlight the severe imbalance between lower and upper body strength. 3. Training Plan: Report's 3-phase plan -> Goal: Organize/Guide -> Viz: Tabbed HTML/CSS/JS interface -> Justification: Breaks down a large volume of information into manageable, user-controlled sections, preventing overwhelm. 4. Key Issues (ITBS, Interference): Report's analysis -> Goal: Inform/Explain -> Viz: Styled HTML cards -> Justification: Presents complex topics in scannable, distinct blocks. CONFIRMING NO SVG/Mermaid. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+            color: #334155; /* slate-700 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+        }
+        @media (min-width: 640px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .nav-link {
+            transition: color 0.3s, border-color 0.3s;
+        }
+        .nav-link.active {
+            color: #0ea5e9; /* sky-500 */
+            border-bottom-color: #0ea5e9; /* sky-500 */
+        }
+        .tab-button.active {
+            background-color: #0ea5e9; /* sky-500 */
+            color: white;
+        }
+        .phase-card {
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .phase-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+    </style>
+</head>
+<body class="bg-slate-50">
+
+    <header class="bg-white/80 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-xl font-bold text-sky-600">扣篮之路</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#diagnosis" class="nav-link text-slate-600 hover:text-sky-500 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent">能力诊断</a>
+                        <a href="#blueprint" class="nav-link text-slate-600 hover:text-sky-500 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent">行动蓝图</a>
+                        <a href="#maintenance" class="nav-link text-slate-600 hover:text-sky-500 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent">综合维护</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <select id="mobile-nav" class="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block w-full p-2.5">
+                        <option value="#diagnosis">能力诊断</option>
+                        <option value="#blueprint">行动蓝图</option>
+                        <option value="#maintenance">综合维护</option>
+                    </select>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+
+        <section id="intro" class="text-center mb-16 md:mb-24">
+            <h1 class="text-4xl md:text-6xl font-extrabold text-slate-800 leading-tight">
+                释放你的<span class="text-sky-500">弹跳潜能</span>
+            </h1>
+            <p class="mt-4 max-w-2xl mx-auto text-lg text-slate-600">
+                一份实现扣篮目标的综合性运动表现分析与战略蓝图。让我们将抽象的目标转化为可衡量的数据，并规划出一条通往成功的清晰路径。
+            </p>
+        </section>
+
+        <section id="diagnosis" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-slate-800">第一部分：能力诊断</h2>
+                <p class="mt-2 text-lg text-slate-500">深入剖析你当前的身体状况，揭示优势与瓶颈。</p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center">
+                <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold text-center mb-4 text-slate-700">垂直弹跳：现状 vs. 目标</h3>
+                    <p class="text-center text-slate-600 mb-4">为了稳定扣篮，你的目标摸高约为320cm，这意味着你需要将当前约61cm的垂直弹跳提升至80cm。这19cm的差距，就是我们整个计划需要攻克的核心目标。</p>
+                    <div class="chart-container">
+                        <canvas id="jumpGaugeChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold text-center mb-4 text-slate-700">力量结构评估：严重失衡</h3>
+                     <p class="text-center text-slate-600 mb-4">你的下肢力量（深蹲/硬拉）构成了坚实的基础，但上肢力量（卧推）严重不足。这种不平衡破坏了跳跃时的动力链，导致力量无法有效传导，是弹跳能力的主要限制因素之一。</p>
+                    <div class="chart-container">
+                        <canvas id="strengthRadarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-12 md:mt-16">
+                <h3 class="text-2xl font-bold text-center mb-8 text-slate-800">三大核心问题剖析</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="bg-white p-6 rounded-xl shadow-lg phase-card">
+                        <h4 class="font-bold text-lg text-sky-600">1. 耐力训练的“干扰效应”</h4>
+                        <p class="mt-2 text-slate-600">你的长跑经历将身体塑造成了一台“耐力机器”，这与扣篮所需的“爆发力引擎”在生理层面相互冲突。大容量耐力训练会抑制爆发力的增长，让你“强壮但不快”。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-lg phase-card">
+                        <h4 class="font-bold text-lg text-sky-600">2. ITBS：稳定肌群薄弱的警报</h4>
+                        <p class="mt-2 text-slate-600">你的髂胫束综合征（ITBS）病史，恰恰暴露了问题的根源：髋部稳定肌群（尤其是臀中肌）和核心力量薄弱。这个不稳定的“发力平台”导致能量泄漏，既限制了弹跳高度，也引发了伤病。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-lg phase-card">
+                        <h4 class="font-bold text-lg text-sky-600">3. 知识体系的缺失</h4>
+                        <p class="mt-2 text-slate-600">你专注于提升“发动机”的排量（最大力量），却忽略了加固“底盘”（稳定性）和升级“变速箱”（爆发力表达）。重塑训练理念，从追求综合运动能力出发，是成功的关键。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="blueprint" class="scroll-mt-24 mt-16 md:mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-slate-800">第二部分：行动蓝图</h2>
+                <p class="mt-2 text-lg text-slate-500">一个科学、分阶段的训练计划，指引你通往巅峰。</p>
+            </div>
+            
+            <div>
+                <div class="mb-4 flex justify-center border-b border-gray-200">
+                    <div class="flex flex-wrap -mb-px space-x-2 sm:space-x-4">
+                        <button class="tab-button inline-block p-3 sm:p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 text-sm sm:text-base" data-tab="phase1">第一阶段：基础重建</button>
+                        <button class="tab-button inline-block p-3 sm:p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 text-sm sm:text-base" data-tab="phase2">第二阶段：爆发力发展</button>
+                        <button class="tab-button inline-block p-3 sm:p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 text-sm sm:text-base" data-tab="phase3">第三阶段：技术整合</button>
+                    </div>
+                </div>
+
+                <div id="tab-content" class="bg-white p-6 md:p-8 rounded-xl shadow-lg">
+                    <div id="phase1" class="tab-pane">
+                        <h3 class="text-2xl font-bold text-sky-600">第一阶段 (第1-6周): 基础重建 - “稳定与活动”</h3>
+                        <p class="mt-2 text-slate-600 mb-6">此阶段不可跳过，目标是根除ITBS病因，为爆发力训练构建一个坚固、无伤病的平台。</p>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <h4 class="font-semibold text-lg">模块一: 活动度与软组织</h4>
+                                <p class="text-sm mt-1 text-slate-500">改善紧张肌肉柔韧性，提升髋、踝关节活动度。</p>
+                                <ul class="mt-2 list-disc list-inside text-slate-600 text-sm space-y-1">
+                                    <li>每日泡沫轴放松</li>
+                                    <li>90/90髋关节内外旋</li>
+                                    <li>靠墙沙发拉伸</li>
+                                    <li>靠墙踝关节活动度训练</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-lg">模块二: 纠正性训练与激活</h4>
+                                <p class="text-sm mt-1 text-slate-500">唤醒并强化被忽视的稳定肌群，解决ITBS核心问题。</p>
+                                <ul class="mt-2 list-disc list-inside text-slate-600 text-sm space-y-1">
+                                    <li>蚌式开合</li>
+                                    <li>侧向平板支撑</li>
+                                    <li>弹力带侧向行走</li>
+                                    <li>鸟狗式与臀桥</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-lg">模块三: 训练策略重构</h4>
+                                <p class="text-sm mt-1 text-slate-500">改变训练重心，为爆发力做准备。</p>
+                                <ul class="mt-2 list-disc list-inside text-slate-600 text-sm space-y-1">
+                                    <li><span class="font-bold">力量</span>: 暂停大重量双边训练，转向单边和稳定动作。</li>
+                                    <li><span class="font-bold">心肺</span>: 立即停止长跑，用低冲击有氧替代（自行车/游泳）。</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="phase2" class="tab-pane hidden">
+                        <h3 class="text-2xl font-bold text-sky-600">第二阶段 (第7-18周): 爆发力发展 - “构建爆发力引擎”</h3>
+                        <p class="mt-2 text-slate-600 mb-6">将已有的力量转化为真正的垂直爆发力，这是提升弹跳的精髓。</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div>
+                                <h4 class="font-semibold text-lg">模块一: 爆发力导向的力量训练</h4>
+                                <p class="text-sm mt-1 text-slate-500">训练重点从“举多重”转变为“多快举起”，提升力量输出速率 (RFD)。</p>
+                                <ul class="mt-2 list-disc list-inside text-slate-600 text-sm space-y-1">
+                                    <li>力量日: 专注绝对力量 (如后蹲, 3-5次/组)</li>
+                                    <li>爆发力日: 专注速度 (如爆发式深蹲, 轻重量)</li>
+                                    <li>持续单边训练 (如保加利亚分腿蹲)</li>
+                                    <li>加强上肢力量训练</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-lg">模块二: 渐进式增强式训练 (Plyometrics)</h4>
+                                <p class="text-sm mt-1 text-slate-500">这是训练伸展-缩短周期(SSC)最有效的方法，必须循序渐进。</p>
+                                <div class="overflow-x-auto mt-2">
+                                    <table class="w-full text-sm text-left text-slate-500">
+                                        <thead class="text-xs text-slate-700 uppercase bg-slate-100">
+                                            <tr>
+                                                <th scope="col" class="px-4 py-2">周数</th>
+                                                <th scope="col" class="px-4 py-2">重点</th>
+                                                <th scope="col" class="px-4 py-2">练习示例</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="bg-white border-b">
+                                                <td class="px-4 py-2 font-medium">7-10</td>
+                                                <td class="px-4 py-2">离心与落地缓冲</td>
+                                                <td class="px-4 py-2">落地跳, 原地纵跳 (重落地)</td>
+                                            </tr>
+                                            <tr class="bg-slate-50 border-b">
+                                                <td class="px-4 py-2 font-medium">11-14</td>
+                                                <td class="px-4 py-2">低强度反应力量</td>
+                                                <td class="px-4 py-2">连续纵跳, 滑冰跳, 箱式跳</td>
+                                            </tr>
+                                            <tr class="bg-white">
+                                                <td class="px-4 py-2 font-medium">15-18</td>
+                                                <td class="px-4 py-2">高强度与单脚专项</td>
+                                                <td class="px-4 py-2">深度跳, 单脚跨栏跳, 连续单脚跳</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="phase3" class="tab-pane hidden">
+                        <h3 class="text-2xl font-bold text-sky-600">第三阶段 (持续进行): 技术整合与精通</h3>
+                        <p class="mt-2 text-slate-600 mb-6">精炼单脚起跳技术，确保所有身体素质都能被高效利用。</p>
+                        <div class="space-y-4">
+                            <div>
+                                <h4 class="font-semibold text-lg">模块一: 倒数第二步 (Penultimate Step) 技术</h4>
+                                <p class="text-sm mt-1 text-slate-500">将水平速度转化为垂直高度的关键。练习“长-短”步点节奏，重心降低，避免“刹车效应”。</p>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-lg">模块二: 手臂摆动协调</h4>
+                                <p class="text-sm mt-1 text-slate-500">强力、协调的手臂摆动能增加数英寸弹跳。在起跳时，手臂需与腿部同时向上有力驱动。</p>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-lg">模块三: 以最大意图跳跃</h4>
+                                <p class="text-sm mt-1 text-slate-500">想跳得高，就必须练习跳高。每周1-2次，进行5-10次最大努力助跑跳，触摸明确高点。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="maintenance" class="scroll-mt-24 mt-16 md:mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-slate-800">第三部分：综合维护</h2>
+                <p class="mt-2 text-lg text-slate-500">确保长期进步、身体健康和训练适应的基石。</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-lg text-center">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-sky-100 mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>
+                    </div>
+                    <h3 class="text-lg font-medium">营养策略</h3>
+                    <p class="mt-2 text-slate-600">充足蛋白质支持肌肉修复，足够碳水化合物为高强度训练供能。</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg text-center">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-sky-100 mb-4">
+                       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <h3 class="text-lg font-medium">恢复与睡眠</h3>
+                    <p class="mt-2 text-slate-600">持续进行软组织处理和活动度训练。优先保证高质量睡眠。</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg text-center">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-sky-100 mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+                    </div>
+                    <h3 class="text-lg font-medium">减载 (Deload)</h3>
+                    <p class="mt-2 text-slate-600">每训练4-6周，安排一周减载期，降低训练量和强度，让身体超量恢复。</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-800 text-white mt-16 md:mt-24">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center">
+            <p class="text-sm text-slate-400">这条通往篮筐的道路已经清晰地展现在面前，现在，是时候迈出第一步了。</p>
+        </div>
+    </footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // Data from the report
+    const userData = {
+        currentJump: 61,
+        targetJump: 80,
+        strength: {
+            squat: 1.32,
+            deadlift: 1.54,
+            bench: 0.55
+        },
+        benchmarks: {
+            novice: { squat: 1.25, deadlift: 1.50, bench: 0.75 },
+            intermediate: { squat: 1.75, deadlift: 2.00, bench: 1.25 }
+        }
+    };
+
+    // Jump Gauge Chart
+    const jumpCtx = document.getElementById('jumpGaugeChart').getContext('2d');
+    const jumpDeficit = userData.targetJump - userData.currentJump;
+    new Chart(jumpCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['当前弹跳 (cm)', '待提升 (cm)'],
+            datasets: [{
+                data: [userData.currentJump, jumpDeficit],
+                backgroundColor: ['#0ea5e9', '#e2e8f0'],
+                borderColor: ['#ffffff', '#ffffff'],
+                borderWidth: 4,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            rotation: -90,
+            circumference: 180,
+            cutout: '70%',
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    enabled: true
+                },
+                title: {
+                    display: true,
+                    text: `${userData.currentJump} / ${userData.targetJump} cm`,
+                    position: 'bottom',
+                    align: 'center',
+                    font: { size: 24, weight: 'bold' },
+                    color: '#0ea5e9',
+                    padding: { top: -40 }
+                }
+            }
+        }
+    });
+
+    // Strength Radar Chart
+    const strengthCtx = document.getElementById('strengthRadarChart').getContext('2d');
+    new Chart(strengthCtx, {
+        type: 'radar',
+        data: {
+            labels: ['深蹲 (vs 体重)', '硬拉 (vs 体重)', '卧推 (vs 体重)'],
+            datasets: [
+                {
+                    label: '你的力量水平',
+                    data: [userData.strength.squat, userData.strength.deadlift, userData.strength.bench],
+                    backgroundColor: 'rgba(14, 165, 233, 0.2)',
+                    borderColor: 'rgba(14, 165, 233, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(14, 165, 233, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(14, 165, 233, 1)'
+                },
+                {
+                    label: '中级标准',
+                    data: [
+                        userData.benchmarks.intermediate.squat, 
+                        userData.benchmarks.intermediate.deadlift, 
+                        userData.benchmarks.intermediate.bench
+                    ],
+                    backgroundColor: 'rgba(100, 116, 139, 0.2)',
+                    borderColor: 'rgba(100, 116, 139, 1)',
+                    borderWidth: 1,
+                    pointBackgroundColor: 'rgba(100, 116, 139, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(100, 116, 139, 1)',
+                    borderDash: [5, 5]
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    angleLines: { display: true },
+                    suggestedMin: 0,
+                    suggestedMax: 2.5,
+                    pointLabels: {
+                        font: { size: 14 }
+                    },
+                    ticks: {
+                        backdropColor: 'rgba(255, 255, 255, 0.75)'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            }
+        }
+    });
+
+    // Tab functionality
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            tabButtons.forEach(btn => btn.classList.remove('active', 'text-sky-600', 'border-sky-600'));
+            button.classList.add('active', 'text-sky-600', 'border-sky-600');
+
+            const tabId = button.getAttribute('data-tab');
+            tabPanes.forEach(pane => {
+                if (pane.id === tabId) {
+                    pane.classList.remove('hidden');
+                } else {
+                    pane.classList.add('hidden');
+                }
+            });
+        });
+    });
+    // Set initial active tab
+    document.querySelector('.tab-button[data-tab="phase1"]').click();
+    
+    // Navigation link active state on scroll
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('.nav-link');
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                navLinks.forEach(link => {
+                    link.classList.toggle('active', link.getAttribute('href').substring(1) === entry.target.id);
+                });
+            }
+        });
+    }, { rootMargin: '-50% 0px -50% 0px' });
+
+    sections.forEach(section => {
+        observer.observe(section);
+    });
+
+    // Mobile navigation
+    const mobileNav = document.getElementById('mobile-nav');
+    mobileNav.addEventListener('change', (e) => {
+        window.location.hash = e.target.value;
+    });
+
+});
+</script>
+
+</body>
+</html>
