@@ -1,0 +1,194 @@
+# SpringBoot 应用配置
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+# Spring 框架配置
+spring:
+  application:
+    name: rabbitmq-demo
+  
+  # RabbitMQ 连接配置
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: admin
+    password: admin123
+    virtual-host: /
+    
+    # 连接池配置
+    connection-timeout: 15000
+    
+    # 发布者确认配置
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    
+    # 消费者配置
+    listener:
+      simple:
+        # 手动确认模式
+        acknowledge-mode: manual
+        # 并发消费者数量
+        concurrency: 1
+        max-concurrency: 10
+        # 预取数量
+        prefetch: 1
+        # 重试配置
+        retry:
+          enabled: true
+          initial-interval: 1000ms
+          max-attempts: 3
+        # 默认重新入队为true
+        default-requeue-rejected: true
+    
+    # 缓存配置
+    cache:
+      connection:
+        mode: channel
+      channel:
+        size: 25
+        checkout-timeout: 0
+    
+    # 模板配置
+    template:
+      # 消息确认回调
+      mandatory: true
+
+  # JSON 序列化配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+      fail-on-empty-beans: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+# 日志配置
+logging:
+  level:
+    com.example.rabbitmq: DEBUG
+    org.springframework.amqp: INFO
+    org.springframework.rabbit: INFO
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n'
+    file: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n'
+  logback:
+    rollingpolicy:
+      file-name-pattern: logs/rabbitmq-demo.%d{yyyy-MM-dd}.%i.log
+      max-file-size: 10MB
+      max-history: 30
+
+# 管理端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,rabbit
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      simple:
+        enabled: true
+
+# 自定义配置
+rabbitmq:
+  # 队列配置
+  queue:
+    # 基础队列名称
+    hello: hello.queue
+    # 用户队列名称
+    user: user.queue
+    # 死信队列名称
+    dead-letter: dead.letter.queue
+    # 文件相关队列
+    file-upload: file.upload.queue
+    file-process: file.process.queue
+    file-notify: file.notify.queue
+  
+  # 交换机配置
+  exchange:
+    # 基础交换机名称
+    hello: hello.exchange
+    # 用户交换机名称  
+    user: user.exchange
+    # 死信交换机名称
+    dead-letter: dead.letter.exchange
+    # 文件处理交换机
+    file: file.exchange
+  
+  # 路由键配置
+  routing:
+    # 基础路由键
+    hello: hello.routing.key
+    # 用户路由键
+    user: user.routing.key
+    # 死信路由键
+    dead-letter: dead.letter.routing.key
+    # 文件处理路由键
+    file-upload: file.upload
+    file-process: file.process
+    file-notify: file.notify
+
+# MinIO 配置
+minio:
+  endpoint: http://localhost:9000
+  access-key: minioadmin
+  secret-key: minioadmin
+  default-bucket: file-storage
+  url-expiry: 7200  # 2小时
+  max-file-size: 104857600  # 100MB
+  multipart-threshold: 5242880  # 5MB
+  part-size: 5242880  # 5MB
+  allowed-content-types:
+    - image/jpeg
+    - image/png
+    - image/gif
+    - image/webp
+    - video/mp4
+    - video/avi
+    - video/mov
+    - application/pdf
+    - application/msword
+    - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+    - application/vnd.ms-excel
+    - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+    - text/plain
+    - application/zip
+    - application/rar
+
+# 开发环境配置
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  rabbitmq:
+    host: localhost
+    port: 5672
+
+# 测试环境配置  
+---
+spring:
+  config:
+    activate:
+      on-profile: test
+  rabbitmq:
+    host: test-rabbitmq-server
+    port: 5672
+
+# 生产环境配置
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  rabbitmq:
+    host: prod-rabbitmq-server
+    port: 5672
+    username: ${RABBITMQ_USERNAME:admin}
+    password: ${RABBITMQ_PASSWORD:admin123}
