@@ -1,0 +1,66 @@
+{
+  "groups": [
+    {
+      "name": "minio",
+      "type": "com.example.rabbitmq.config.MinioConfig$MinioProperties",
+      "sourceType": "com.example.rabbitmq.config.MinioConfig$MinioProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "minio.access-key",
+      "type": "java.lang.String",
+      "description": "访问密钥",
+      "sourceType": "com.example.rabbitmq.config.MinioConfig$MinioProperties"
+    },
+    {
+      "name": "minio.allowed-content-types",
+      "type": "java.lang.String[]",
+      "description": "允许的文件类型",
+      "sourceType": "com.example.rabbitmq.config.MinioConfig$MinioProperties"
+    },
+    {
+      "name": "minio.default-bucket",
+      "type": "java.lang.String",
+      "description": "默认存储桶名称",
+      "sourceType": "com.example.rabbitmq.config.MinioConfig$MinioProperties"
+    },
+    {
+      "name": "minio.endpoint",
+      "type": "java.lang.String",
+      "description": "MinIO 服务地址",
+      "sourceType": "com.example.rabbitmq.config.MinioConfig$MinioProperties"
+    },
+    {
+      "name": "minio.max-file-size",
+      "type": "java.lang.Long",
+      "description": "单个文件最大大小（字节）",
+      "sourceType": "com.example.rabbitmq.config.MinioConfig$MinioProperties"
+    },
+    {
+      "name": "minio.multipart-threshold",
+      "type": "java.lang.Long",
+      "description": "分片上传阈值（字节）",
+      "sourceType": "com.example.rabbitmq.config.MinioConfig$MinioProperties"
+    },
+    {
+      "name": "minio.part-size",
+      "type": "java.lang.Long",
+      "description": "分片大小（字节）",
+      "sourceType": "com.example.rabbitmq.config.MinioConfig$MinioProperties"
+    },
+    {
+      "name": "minio.secret-key",
+      "type": "java.lang.String",
+      "description": "秘密密钥",
+      "sourceType": "com.example.rabbitmq.config.MinioConfig$MinioProperties"
+    },
+    {
+      "name": "minio.url-expiry",
+      "type": "java.lang.Integer",
+      "description": "文件URL过期时间（秒）",
+      "sourceType": "com.example.rabbitmq.config.MinioConfig$MinioProperties"
+    }
+  ],
+  "hints": []
+}

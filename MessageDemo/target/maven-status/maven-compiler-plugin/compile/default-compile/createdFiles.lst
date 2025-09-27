@@ -1,0 +1,6 @@
+com\example\rabbitmq\producer\MessageProducer.class
+com\example\rabbitmq\controller\MessageController.class
+com\example\rabbitmq\model\User.class
+com\example\rabbitmq\RabbitMQDemoApplication.class
+com\example\rabbitmq\config\RabbitConfig.class
+com\example\rabbitmq\consumer\MessageConsumer.class
